@@ -1,0 +1,77 @@
+# SCIPhI: Single-cell mutation identification via phylogenetic inference
+#
+# Copyright (C) 2018 ETH Zurich, Jochen Singer
+#
+# This file is part of SCIPhI.
+#
+# SCIPhI is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# SCIPhI is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with SCIPhI. If not, see <http://www.gnu.org/licenses/>.
+# 
+# @author: Jochen Singer
+
+rule downloadReference:
+    output:
+        fa = '../../data/ucsc.hg19.fasta',
+        fai = '../../data/ucsc.hg19.fasta.fai',
+        dict = '../../data/ucsc.hg19.dict',
+        mills = '../../data/Mills_and_1000G_gold_standard.indels.hg19.sites.vcf',
+        millsIdx = '../../data/Mills_and_1000G_gold_standard.indels.hg19.sites.vcf.idx'
+    params:
+        lsfoutfile = '../../data/ucsc.fasta.hg19.lsfout.log',
+        lsferrfile = '../../data/ucsc.fasta.hg19.lsferr.log',
+        scratch = '2000',
+        mem = '2000',
+        time = '120'
+    shell:
+        ('cd ../../; mkdir -p data; cd data; ' +
+        'wget ftp://gsapubftp-anonymous@ftp.broadinstitute.org/bundle/hg19/ucsc.hg19.fasta.gz; gunzip ucsc.hg19.fasta.gz; ' +
+        'wget ftp://gsapubftp-anonymous@ftp.broadinstitute.org/bundle/hg19/ucsc.hg19.fasta.fai.gz; gunzip ucsc.hg19.fasta.fai.gz; ' +
+        'wget ftp://gsapubftp-anonymous@ftp.broadinstitute.org/bundle/hg19/ucsc.hg19.dict.gz; gunzip ucsc.hg19.dict.gz;' +
+        'wget ftp://gsapubftp-anonymous@ftp.broadinstitute.org/bundle/hg19/Mills_and_1000G_gold_standard.indels.hg19.sites.vcf.gz; gunzip Mills_and_1000G_gold_standard.indels.hg19.sites.vcf.gz; ' +
+        'wget ftp://gsapubftp-anonymous@ftp.broadinstitute.org/bundle/hg19/Mills_and_1000G_gold_standard.indels.hg19.sites.vcf.idx.gz; gunzip Mills_and_1000G_gold_standard.indels.hg19.sites.vcf.idx.gz; ' +
+        'wget ftp://gsapubftp-anonymous@ftp.broadinstitute.org/bundle/hg19/1000G_phase1.indels.hg19.sites.vcf.gz; gunzip 1000G_phase1.indels.hg19.sites.vcf.gz; ' +
+        'wget ftp://gsapubftp-anonymous@ftp.broadinstitute.org/bundle/hg19/1000G_phase1.indels.hg19.sites.vcf.idx.gz; gunzip 1000G_phase1.indels.hg19.sites.vcf.idx.gz;')
+
+rule createBwaIndex:
+    input:
+        ref = '../../data/ucsc.hg19.fasta'
+    output:
+        index1 = '../../data/ucsc.hg19.fasta.amb',
+        index2 = '../../data/ucsc.hg19.fasta.ann',
+        index3 = '../../data/ucsc.hg19.fasta.bwt',
+        index4 = '../../data/ucsc.hg19.fasta.pac',
+        index5 = '../../data/ucsc.hg19.fasta.sa'
+    params:
+        lsfoutfile = '../../data/ucsc.hg19.fasta.bwa.lsfout.log',
+        lsferrfile = '../../data/ucsc.hg19.fasta.bwa.lsferr.log',
+        scratch = '10000',
+        mem = '10000',
+        time = '240',
+        index = '../../data/ucsc.hg19.fasta'
+    conda:
+        'envs/bwa.yaml'
+    shell:
+        'bwa index {input.ref}'
+
+rule downloadExomeBed:
+    output:
+        '../../data/nexterarapidcapture_expandedexome_targetedregions.bed'
+    params:
+        lsfoutfile = '../../data/nexterarapidcapture_expandedexome_targetedregions.bed.lsfout.log',
+        lsferrfile = '../../data/nexterarapidcapture_expandedexome_targetedregions.bed.lsferr.log',
+        scratch = '2000',
+        mem = '2000',
+        time = '120'
+    shell:
+        ('cd ../../; mkdir -p data; cd data; ' +
+        'wget http://support.illumina.com/content/dam/illumina-support/documents/documentation/chemistry_documentation/samplepreps_nextera/nexterarapidcapture/nexterarapidcapture_expandedexome_targetedregions.bed')

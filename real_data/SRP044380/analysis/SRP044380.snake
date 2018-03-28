@@ -1,0 +1,171 @@
+# SCIPhI: Single-cell mutation identification via phylogenetic inference
+#
+# Copyright (C) 2018 ETH Zurich, Jochen Singer
+#
+# This file is part of SCIPhI.
+#
+# SCIPhI is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# SCIPhI is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with SCIPhI. If not, see <http://www.gnu.org/licenses/>.
+# 
+# @author: Jochen Singer
+
+import os, glob, sys
+from snakemake.utils import R
+
+SAMPLEMAPPING = 'sample_mapping.txt' 
+FASTQDIR = '../data/sra/'
+OUTDIR   = 'out/'
+TMPDIR   = 'tmp/'
+
+ORGANISM = 'H_sapiens_hg19'
+
+BWAIN = FASTQDIR
+BWAOUT = OUTDIR + 'bwa/'
+FIXMATEANDSORTIN = BWAOUT
+FIXMATEANDSORTOUT = OUTDIR + 'sorted/'
+MERGEBAMSIN = FIXMATEANDSORTOUT
+MERGEBAMSOUT = OUTDIR + 'merged/'
+REALIGNINDELSIN = MERGEBAMSOUT
+REALIGNINDELSOUT = OUTDIR + 'realignedIndels/'
+MPILEUPIN = REALIGNINDELSOUT
+MPILEUPOUT = OUTDIR + 'mpileup/'
+SCATEOUT = OUTDIR + 'variants/sciphi/'
+MONOVAROUT = OUTDIR + 'variants/monovar/'
+FINALBAMOUTDIR = REALIGNINDELSOUT
+
+include: "../../pipe/misc_snake.py"
+include: "../../pipe/align_snake.py"
+
+TUMORSAMPLENAMES = getTumorSampleNames("CT")
+CELLNORMALSAMPLENAMES = getTumorSampleNames("CN")
+BULKNORMALSAMPLENAMES = getTumorSampleNames("BN")
+SAMPLENAMES = CELLNORMALSAMPLENAMES + BULKNORMALSAMPLENAMES + TUMORSAMPLENAMES
+PAIREDFASTQFILESWITHOUTR = getPairedFastqFilesWithoutR(SAMPLENAMES)
+SINGLEFASTQFILES = ""
+
+rule SRP044380:
+    input:
+        expand(OUTDIR + 'variants/monovar/{experiment}.vcf', experiment = getExperimentNames()),
+        expand(OUTDIR + 'variants/sciphi/{run}/{experiment}.vcf', experiment = getExperimentNames(), run = ['1', '2', '3']),
+        expand(OUTDIR + 'variants/sciphi/{run}/{experiment}_heatTree.pdf', experiment = getExperimentNames(), run = ['1', '2', '3']),
+        expand(OUTDIR + 'variants/monovar/{experiment}_heatTree.pdf', experiment = getExperimentNames()),
+        expand(OUTDIR + 'variants/monovar/{experiment}_cluster.pdf', experiment = getExperimentNames())
+
+rule samtoolsCombinedMpileup:
+    input:
+        bams = getFinalTumorBams,
+        fileNames = FINALBAMOUTDIR + '{experiment}_tumor_bamFileNames.txt',
+        ref = config['resources'][ORGANISM]['reference'],
+        regions = config['resources'][ORGANISM]['regions']
+    output:
+        mpileup = temp(MPILEUPOUT + '{experiment}.mpileup'),
+        gz = MPILEUPOUT + '{experiment}.mpileup.gz'
+    params:
+        lsfoutfile = MPILEUPOUT + '{experiment}.mpileup.lsfout.log',
+        lsferrfile = MPILEUPOUT + '{experiment}.mpileup.lsferr.log',
+        params = config['tools']['samtools']['mpileup']['params'],
+        scratch = config['tools']['samtools']['mpileup']['scratch'],
+        mem = config['tools']['samtools']['mpileup']['mem'],
+        time = config['tools']['samtools']['mpileup']['time']
+    conda:
+        'envs/samtools.yaml'
+    benchmark:
+        MPILEUPOUT + '{experiment}.mpileup.benchmark'
+    shell:
+        'samtools mpileup -f {input.ref} {params.params} -b {input.fileNames} -l {input.regions} > {output.mpileup}; gzip < {output.mpileup} > {output.gz}'
+
+rule monovar_panel:
+    input:
+        bams = getFinalTumorBams,
+        ref = config['resources'][ORGANISM]['reference'],
+        mpileup = MPILEUPOUT + '{experiment}.mpileup',
+        fileNames = FINALBAMOUTDIR + '{experiment}_tumor_bamFileNames.txt'
+    output:
+        MONOVAROUT + '{experiment}.vcf'
+    params:
+        lsfoutfile = MONOVAROUT + 'monovar.vcf.lsfout.log',
+        lsferrfile = MONOVAROUT + 'monovar.vcf.lsferr.log',
+        scratch = config['tools']['monovar']['scratch'],
+        mem = config['tools']['monovar']['mem'],
+        time = config['tools']['monovar']['time']
+    benchmark:
+        MONOVAROUT + 'monovar.vcf.benchmark'
+    threads:
+        config['tools']['monovar']['threads']
+    shell:
+        ('{config[tools][monovar][activate]}; ' +
+        'cat {input.mpileup} | ' +
+        '{config[tools][monovar][call]} ' + 
+        '{config[tools][monovar][params]} ' +
+        '-f {input.ref} -b {input.fileNames} -o {output}')
+
+ruleorder: createTumorBamFileSummaryScate > createTumorBamFileSummary
+localrules: createTumorBamFileSummaryScate
+rule createTumorBamFileSummaryScate:
+    input:
+        bams = getFinalTumorBams,
+    output:
+        SCATEOUT + '{experiment}_tumor_bamFileNames.txt'
+    run:
+        sampleMappingFile = open(SAMPLEMAPPING, 'r')
+        sampleMapping = {}
+        for line in sampleMappingFile:
+            sampleMapping[line.strip().split('\t')[1]] = line.strip().split('\t')[2]
+
+        outfile = open(str(output), "w")
+        for entry in input.bams:
+            sample = entry.split('/')[-1].replace('.bam','')
+            outfile.write(entry + '\t' + sampleMapping[sample] + '\n')
+        outfile.close()
+
+rule sciphi_panel:
+    input:
+        ref = config['resources'][ORGANISM]['reference'],
+        regions = config['tools']['sciphi']['exRegions'],
+        mpileup = MPILEUPOUT + '{experiment}.mpileup',
+        fileNames = SCATEOUT + '{experiment}_tumor_bamFileNames.txt'
+    output:
+        tsv = SCATEOUT + '{run}/{experiment}_mut2Sample.tsv',
+        probs = SCATEOUT + '{run}/{experiment}.probs',
+        gv = SCATEOUT + '{run}/{experiment}.gv',
+        params = SCATEOUT + '{run}/{experiment}.params.txt',
+        vcf = SCATEOUT + '{run}/{experiment}.vcf'
+    params:
+        lsfoutfile = SCATEOUT + '{run}/{experiment}.lsfout.log',
+        lsferrfile = SCATEOUT + '{run}/{experiment}.lsferr.log',
+        scratch = config['tools']['sciphi']['scratch'],
+        mem = config['tools']['sciphi']['mem'],
+        time = config['tools']['sciphi']['time'],
+        out = SCATEOUT + '{run}/{experiment}'
+    benchmark:
+        SCATEOUT + '{run}/{experiment}.benchmark'
+    threads:
+        1
+    log:
+        SCATEOUT + '{run}/{experiment}.log'
+    shell:
+        ('{config[tools][sciphi][call]} ' +
+        '-o {params.out} ' +
+        '-i {input.ref} ' +
+        '--in {input.fileNames} ' +
+        '--me {input.regions} ' +
+        '--cwm 2 ' + 
+        '--ms 3 ' +
+        '--nmc 2 ' +
+        '--lz 1 ' + 
+        '--pr 0.001 ' +
+        '--seed {wildcards.run} ' +
+        '-l 3000000 ' +
+        '--ls 100000 ' +
+        '{input.mpileup}')
+

@@ -1,0 +1,120 @@
+# SCIPhI: Single-cell mutation identification via phylogenetic inference
+#
+# Copyright (C) 2018 ETH Zurich, Jochen Singer
+#
+# This file is part of SCIPhI.
+#
+# SCIPhI is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# SCIPhI is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with SCIPhI. If not, see <http://www.gnu.org/licenses/>.
+# 
+# @author: Jochen Singer
+
+OUTDIR = ''
+
+f = open('SRP044380.txt', 'r')
+NAMES = []
+for line in f:
+    NAMES.append(line.strip())
+f.close()
+
+f = open('srr2sample.map', 'r')
+CELLS = []
+SRR2SAMPLE = {}
+for line in f:
+    CELLS.append(line.strip().split()[1])
+    SRR2SAMPLE[line.strip().split()[0]] = (line.strip().split()[1])
+f.close()
+
+def finalFastqNames():
+    out = []
+    for srr, sample in SRR2SAMPLE.items():
+        out.append('sra/' + sample + '/PAIREDEND/' + srr + '_R1.fastq.gz')
+        out.append('sra/' + sample + '/PAIREDEND/' + srr + '_R2.fastq.gz')
+    return out
+FINALFASTQNAMES = finalFastqNames()
+
+def finalTSVNames():
+    out = []
+    for srr, sample in SRR2SAMPLE.items():
+        out.append('sra/' + sample + '/PAIREDEND/' + srr + '.tsv')
+    return out
+FINALTSVNAMES = finalTSVNames()
+
+include: '../../data/data.snake'
+
+rule all:
+    input: 
+        expand(OUTDIR + '{file}', file = FINALFASTQNAMES),
+        expand(OUTDIR + '{file}', file = FINALTSVNAMES),
+        '../../data/ucsc.hg19.fasta',
+        '../../data/ucsc.hg19.fasta.amb',
+        '../../data/Mills_and_1000G_gold_standard.indels.hg19.sites.vcf',
+        '../../data/Mills_and_1000G_gold_standard.indels.hg19.sites.vcf.idx'
+
+def getShortId(wildcards):
+    return wildcards.id[0:6]
+
+rule download:
+    output: temp(OUTDIR + 'sra/{id}.sra')
+    params: 
+        shortId = getShortId,
+        lsfoutfile = OUTDIR + 'sra/{id}.sra.out',
+        lsferrfile = OUTDIR + 'sra/{id}.sra.err',
+        outdir = OUTDIR,
+        scratch = '10000',
+        mem = '10000',
+        time = '15'
+    shell: 'wget ftp://ftp-trace.ncbi.nih.gov/sra/sra-instant/reads/ByRun/sra/SRR/{params.shortId}/{wildcards.id}/{wildcards.id}.sra -O {params.outdir}sra/{wildcards.id}.sra'
+
+rule fastqDump:
+    input: 
+        sra = OUTDIR + 'sra/{id}.sra'
+    output: 
+        R1 = OUTDIR + 'sra/{id}/PAIREDEND/{id}_1.fastq.gz',
+        R2 = OUTDIR + 'sra/{id}/PAIREDEND/{id}_2.fastq.gz'
+    params: 
+        outDir = OUTDIR + 'sra/{id}/PAIREDEND/',
+        lsfoutfile = OUTDIR + 'sra/{id}.fastq.out',
+        lsferrfile = OUTDIR + 'sra/{id}.fastq.err',
+        scratch = '10000',
+        mem = '10000',
+        time = '120'
+    conda:
+        '../../data/envs/sra.yaml'
+    shell:
+        'fastq-dump --split-3 --gzip --outdir {params.outDir} {input.sra}'
+
+localrules: linkFastqs
+rule linkFastqs:
+    input:
+        fastq = OUTDIR + 'sra/{srr}/PAIREDEND/{srr}_{mate}.fastq.gz'
+    output:
+        fastq = OUTDIR + 'sra/{sample}/PAIREDEND/{srr}_R{mate}.fastq.gz'
+    params:
+        outdir = OUTDIR
+    shell:
+        'cd {params.outdir}sra/{wildcards.sample}/PAIREDEND/; ln -s ../../{wildcards.srr}/PAIREDEND/{wildcards.srr}_{wildcards.mate}.fastq.gz {wildcards.srr}_R{wildcards.mate}.fastq.gz; cd - ; touch -h {output.fastq}'
+
+localrules: createTSVs
+rule createTSVs:
+    input:
+        fastq = OUTDIR + 'sra/{srr}/PAIREDEND/{srr}_1.fastq.gz'
+    output:
+        fastq = OUTDIR + 'sra/{sample}/PAIREDEND/{srr}.tsv'
+    run:
+        f = open(output.fastq, 'w')
+        f.write("RUN_NAME_FOLDER\t" + wildcards.sample + "\n")
+        f.write("LANE_NUMBER\t" + wildcards.sample + "\n")
+        f.write("SAMPLE_CODE\t" + wildcards.sample + "\n")
+        f.write("SAMPLE_TYPE\tILLUMINA\n")
+        f.close()
