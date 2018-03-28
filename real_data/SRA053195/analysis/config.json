@@ -1,0 +1,135 @@
+{
+    "resources":{
+        "H_sapiens_hg19":{
+            "reference": "../../data/ucsc.hg19.fasta",
+            "referenceFai": "../../data/ucsc.hg19.fasta.fai",
+            "referenceDict": "../../data/ucsc.hg19.dict",
+            "bwaIndex": "../../data/ucsc.hg19.fasta_bwa/ucsc.hg19.fasta",
+            "regions": "../../data/nexterarapidcapture_expandedexome_targetedregions.bed",
+            "1000G_indels": "../../data/1000G_phase1.indels.hg19.sites.vcf",
+            "Mills_indels": "../../data/Mills_and_1000G_gold_standard.indels.hg19.sites.vcf",
+            "bwaIndex": "../../data/ucsc.hg19.fasta"
+        },
+    },
+    "tools":{
+        "bwa":{
+            "mem":{
+                "call":"bwa mem ",
+                "params": "-M ",
+                "scratch": "2000",
+                "memory": "2000",
+                "time": "235",
+                "threads": 8
+            }
+        },
+        "samtools":{
+            "call": "samtools ",
+            "flagstat":{
+                "params": "",
+                "scratch":"2000",
+                "mem": "4000",
+                "time": "200",
+                "threads": 1
+            },
+            "index":{
+                "scratch": "2000",
+                "mem": "2000",
+                "time": "100",
+                "threads": 1
+            },
+            "mpileup":{
+                "params": "-A -B -d 1000 -q 40 ",
+                "outputTags": "DP,DP4,SP,DPR,DV",
+                "scratch": "8000",
+                "mem": "8000",
+                "time": "1400",
+                "threads": 1
+            },
+            "rmSecondary":{
+                "scratch": "4000",
+                "mem": "4000",
+                "time": "235",
+                "threads": 1
+            },
+            "rmDuplicates":{
+                "threads": 1,
+                "scratch": "2000",
+                "mem": "2000",
+                "time": "235"
+            }
+        },
+        "picard":{
+            "call": "picard.jar ",
+            "fixMateInformation":{
+                "sortOrder": "coordinate",
+                "mem": "12000",
+                "time": "1400",
+                "scratch": "12000",
+                "threads": 1,
+                "assume_sorted": "false",
+                "params": "MAX_RECORDS_IN_RAM=500000"
+            },
+            "mergeBams":{
+                "threads": 1,
+                "mem": "24000",
+                "time": "1400",
+                "scratch": "24000",
+                "assume_sorted": "true",
+                "params" : ""
+            },
+            "markduplicates":{
+                "mem": "12000",
+                "time": "1400",
+                "scratch": "12000",
+                "threads": 1,
+                "params": "ASSUME_SORTED=true MAX_FILE_HANDLES_FOR_READ_ENDS_MAP=1000 MAX_RECORDS_IN_RAM=500000 REMOVE_DUPLICATES=true CREATE_INDEX=true"
+            }
+        },
+        "GATK":{
+            "call": "java -jar GenomeAnalysisTK.jar",
+            "realign" : {
+                "targetCreator":{
+                    "params": "",
+                    "threads": 1,
+                    "mem": "16000",
+                    "time": "1400",
+                    "scratch": "16000"
+                },
+                "realignIndels":{
+                    "params": "",
+                    "threads": 1,
+                    "mem": "24000",
+                    "time": "1400",
+                    "scratch": "24000"
+                },
+                "Mills_indels": "Y",
+                "1000G_indels": "Y",
+                "realignFilesFromExperimentTogether" : "N"
+            }
+        },
+        "monovar": {
+            "activate" : "",
+            "call" : "python3 path_to_monovar",
+            "params" : "-p 0.002 -a 0.2 -t 0.05 -m 2",
+            "scratch": "10000",
+            "mem": "10000",
+            "time": "4200",
+            "threads": 1
+        },
+        "sciphi": {
+            "call" : "path_to_sciphi_git/sciphi",
+            "scratch": "3000",
+            "mem": "3000",
+            "time": "1400",
+            "threads": 1
+        },
+        "sciphiToHeatMap": {
+            "call1" : "path_to_sciphi_git/convertTree2Map",
+            "call2" : "Rscript path_to_sciphi_git/benchmark/createSCIPhITreeHeatMap.R"
+        },
+        "monovarToHeatMap": {
+            "call1" : "python3 path_to_sciphi_git/monovarToMap.py",
+            "call2" : "Rscript path_to_sciphi_git/benchmark/createSCIPhITreeHeatMap.R"
+        }
+    }
+}

@@ -1,0 +1,461 @@
+# SCIPhI: Single-cell mutation identification via phylogenetic inference
+#
+# Copyright (C) 2018 ETH Zurich, Jochen Singer
+#
+# This file is part of SCIPhI.
+#
+# SCIPhI is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# SCIPhI is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with SCIPhI. If not, see <http://www.gnu.org/licenses/>.
+# 
+# @author: Jochen Singer
+import os
+from subprocess import call
+from snakemake.utils import R
+import random
+
+OUTDIR = "simulation"
+NUMPOSITIONS = 1000000
+DROPOUTRATE = 0.2
+LOOPS = 1000000
+MAXCOVERAGE = 300
+NUMMUTATIONS = 100
+NUMCELLS = ['10', '25', '50']
+PRIORSSCIPHI = ['0.01','0.001','0.0001','0.00001','0.000001',]
+PRIORSMONOVAR = ['0.2','0.02','0.002','0.0002','0.00002',]
+DROPOUTS = ['0', '0.1', '0.2', '0.3']
+ZYGS = ['0', '0.1', '0.2', '0.3']
+NUMRUNS = 50
+MDAERRORRATE = 0.0000005
+SEQUENCINGERRORRATE = 0.0005
+COVMEAN = 25
+COVVAR = 50
+AVERAGEREGIONLENGTH = 1000
+
+include: "tools.py"
+
+rule all:
+    input:
+        OUTDIR + 'distance_numCells.txt',
+        OUTDIR + 'distance_drop.txt',
+        OUTDIR + 'distance_prior.txt',
+        OUTDIR + 'distance_zyg.txt',
+
+def getSeed(wildcards):
+    return str(int(wildcards.run) + 2)
+
+rule createTree:
+    output:
+        tsvArt = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/run_{run}/art_tree_mut2sample.tsv',
+    params:
+        lsfoutfile = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/run_{run}/art_tree_mutations.lsfout.log',
+        lsferrfile = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/run_{run}/art_tree_mutations.lsferr.log',
+        scratch = '1000',
+        mem = '1000',
+        time = '1',
+        out = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/run_{run}/art_tree',
+        numPos = str(NUMPOSITIONS),
+        seed = getSeed
+    benchmark:
+        OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/run_{run}/art_tree_mutations.benchmark'
+    threads:
+        1
+    log:
+        OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/run_{run}/art_tree_mutations.log'
+    shell:
+        (CREATESINGLECELLTREE + ' ' +
+        '-nml ' +
+        '-o {params.out} ' +
+        '-s {params.seed} ' +
+        '-dor {wildcards.drop} ' +
+        '-clbm {wildcards.zyg} ' +
+        '-mi 0 ' +
+        '-ns {wildcards.cells} ' +
+        '-nm {wildcards.muts} ' +
+        '-np {params.numPos}')
+
+def getPileups(wildcards):
+    output = []
+    for i in range(0, int(wildcards.cells)):
+        output.append(OUTDIR + 'cells_' + wildcards.cells + '/muts_' + wildcards.muts + '/drop_' + wildcards.drop + '/zyg_' + wildcards.zyg + '/run_' + wildcards.run + '/cell' + str(i) + '/final_sorted.mpileup')
+    return output
+
+def getBams(wildcards):
+    output = []
+    for i in range(0, int(wildcards.cells)):
+        output.append(OUTDIR + 'cells_' + wildcards.cells + '/muts_' + wildcards.muts + '/drop_' + wildcards.drop + '/zyg_' + wildcards.zyg + '/run_' + wildcards.run + '/cell' + str(i) + '/' + str(i) + '.bam')
+    return output
+
+localrules: createBamFileSummary
+rule createBamFileSummary:
+    output:
+        OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/run_{run}/bamFileNames.txt'
+    params: 
+        bams = getBams
+    shell:
+        '''
+        touch {output}
+        for file in {params.bams}
+        do
+            echo $file >> {output}
+            mkdir -p $(dirname $file)
+            touch $file
+        done
+        '''
+
+rule createMpileup:
+    input:
+        tsv = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/run_{run}/art_tree_mut2sample.tsv',
+    output:
+        mpileup = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/run_{run}/combined.mpileup',
+        ref = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/run_{run}/combined.fa'
+    params:
+        lsfoutfile = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/run_{run}/combined.lsfout.log',
+        lsferrfile = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/run_{run}/combined.lsferr.log',
+        scratch = '2000',
+        mem = '2000',
+        time = '180',
+        seed = getSeed
+    benchmark:
+        OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/run_{run}/combined.benchmark'
+    shell:
+        (PYTHON3 + ' ' + CREATEMPILEUP + ' ' +
+        '-i {output.ref} ' +
+        '-f {input.tsv} ' +
+        '-o {output.mpileup} ' +
+        '-n ' + str(NUMPOSITIONS) + ' ' +
+        '-c ' + str(COVMEAN) + ' ' +
+        '-v ' + str(COVVAR) + ' ' +
+        '-a ' + str(AVERAGEREGIONLENGTH) + ' ' +
+        '-N {wildcards.cells} ' + 
+        '-m ' + str(MDAERRORRATE) + ' ' +
+        '-e ' + str(SEQUENCINGERRORRATE) + ' ' +
+        '-M 0.1 ' +
+        '-s {params.seed}')
+
+localrules: createBamFileSummaryScate
+rule createBamFileSummaryScate:
+    output:
+        OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/run_{run}/prior_{prior}/sciphi/force_zyg_{fzyg}/input_spec.txt'
+    params: 
+        bams = getBams
+    shell:
+        '''
+        truncate -s0 {output}
+        for file in {params.bams}
+        do
+            printf $file"\tCT\n" >> {output}
+        done
+        '''
+def getZyg(wildcards):
+    if wildcards.fzyg == '0':
+        return '0'
+    else:
+        return '1'
+
+rule sciphi:
+    input:
+        fileNames = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/run_{run}/prior_{prior}/sciphi/force_zyg_{fzyg}/input_spec.txt',
+        mpileups = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/run_{run}/combined.mpileup'
+    output:
+        tsv = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/run_{run}/prior_{prior}/sciphi/force_zyg_{fzyg}/sciphi_mut2Sample.tsv',
+        gv = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/run_{run}/prior_{prior}/sciphi/force_zyg_{fzyg}/sciphi.gv',
+        probs = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/run_{run}/prior_{prior}/sciphi/force_zyg_{fzyg}/sciphi.probs',
+        params = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/run_{run}/prior_{prior}/sciphi/force_zyg_{fzyg}/sciphi.params.txt',
+        vcf = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/run_{run}/prior_{prior}/sciphi/force_zyg_{fzyg}/sciphi.vcf'
+    params:
+        lsfoutfile = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/run_{run}/prior_{prior}/sciphi/force_zyg_{fzyg}/sciphi_mutations.lsfout.log',
+        lsferrfile = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/run_{run}/prior_{prior}/sciphi/force_zyg_{fzyg}/sciphi_mutations.lsferr.log',
+        scratch = '1000',
+        mem = '1000',
+        time = '60',
+        out = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/run_{run}/prior_{prior}/sciphi/force_zyg_{fzyg}/sciphi',
+        loops = str(LOOPS),
+        zyg = getZyg,
+        seed = getSeed
+    benchmark:
+        OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/run_{run}/prior_{prior}/sciphi/force_zyg_{fzyg}/sciphi_mutations.benchmark'
+    threads:
+        1
+    log:
+        OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/run_{run}/prior_{prior}/sciphi/force_zyg_{fzyg}/sciphi_mutations.log'
+    shell:
+        (SCIPHI + 
+        ' --cwm 2 ' + 
+        '--lz {params.zyg} ' +
+        '-t s ' +
+        '-r 1 ' +
+        '-l {params.loops} '
+        '--pr {wildcards.prior} ' +
+        '--seed {params.seed} ' +
+        '-o {params.out} ' +
+        '-e 0.2 ' +
+        '--in {input.fileNames} ' +
+        '{input.mpileups}')
+
+localrules: sciphiToHeatMap
+rule sciphiToHeatMap:
+    input:
+        probs = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/run_{run}/prior_{prior}/sciphi/force_zyg_{fzyg}/sciphi.probs',
+        gv = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/run_{run}/prior_{prior}/sciphi/force_zyg_{fzyg}/sciphi.gv',
+    output:
+        tsv = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/run_{run}/prior_{prior}/sciphi/force_zyg_{fzyg}/sciphi_heatTree.tsv',
+        pdf = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/run_{run}/prior_{prior}/sciphi/force_zyg_{fzyg}/sciphi_heatTree.pdf'
+    shell:
+        CONVERTTREE2MAP + ' -i {input.gv} -p {input.probs} -o {output.tsv}; ' + PLOTSCIPHIHEATTREE + ' {output.tsv} {output.pdf}'
+
+
+rule monovar:
+    input:
+        ref = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/run_{run}/combined.fa',
+        mpileup = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/run_{run}/combined.mpileup',
+        fileNames = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/run_{run}/bamFileNames.txt'
+    output:
+        OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/run_{run}/prior_{prior}/monovar/monovar.vcf'
+    params:
+        lsfoutfile = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/run_{run}/prior_{prior}/monovar/monovar.vcf.lsfout.log',
+        lsferrfile = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/run_{run}/prior_{prior}/monovar/monovar.vcf.lsferr.log',
+        scratch = '10000',
+        mem = '10000',
+        time = '60',
+    benchmark:
+        OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/run_{run}/prior_{prior}/monovar/monovar.vcf.benchmark'
+    shell:
+        ('source ' + MONOVARACTIVATE + '; ' + 
+        'cat {input.mpileup} | ' +
+        MOMOVAR + 
+        ' -p {wildcards.prior} ' +
+        '-a {wildcards.drop} ' +
+        '-t 0.05 ' +
+        '-m 2 ' +
+        '-f {input.ref} ' +
+        '-b {input.fileNames} ' +
+        '-o {output}')
+
+localrules: binarizeVCF
+rule binarizeVCF:
+    input:
+        vcf = '{sample}/monovar.vcf'
+    output:
+        bin = '{sample}/monovar.bin'
+    shell:
+        PYTHON3 + ' ' + BINARIZEVCF + ' {input.vcf} {output.bin}'
+
+localrules: binarizeSciphiVCF
+rule binarizeSciphiVCF:
+    input:
+        vcf = '{sample}/sciphi.vcf'
+    output:
+        bin = '{sample}/sciphi.bin',
+        bin2 = '{sample}/sciphi_noNAs.bin'
+    shell:
+        PYTHON3 + ' ' + BINARIZESCIPHIVCF + ' {input.vcf} {output.bin}'
+
+rule compare2GroundTruth:
+    input:
+        sciphi = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/run_{run}/prior_{prior}/{tool}/{sample}.bin',
+        tsvArt = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/run_{run}/art_tree_mut2sample.tsv',
+        mpileup = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/run_{run}/combined.mpileup'
+    output: 
+        txt = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/run_{run}/prior_{prior}/{tool}/{sample}_distance.txt',
+        fp =  OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/run_{run}/prior_{prior}/{tool}/{sample}_false_positives.txt',
+        fn = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/run_{run}/prior_{prior}/{tool}/{sample}_false_negatives.txt'
+    params:
+        lsfoutfile = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/run_{run}/prior_{prior}/{tool}/{sample}_distance.txt.lsfout.log',
+        lsferrfile = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/run_{run}/prior_{prior}/{tool}/{sample}_distance.txt.lsferr.log',
+        scratch = '10000',
+        mem = '10000',
+        time = '60'
+    benchmark:
+        OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/run_{run}/prior_{prior}/{tool}/{sample}_distance.txt.benchmark'
+    run:
+        import time
+
+        infile = open(input.tsvArt, 'r')
+        infile.readline() # skip the header line
+        
+        posDictTruth = {}
+        for line in infile:
+            lineSplit = line.strip().split('\t')
+            pos = lineSplit[0]
+            posDictTruth[pos] = lineSplit[1:]
+        infile.close()
+
+        infile = open(input.mpileup, 'r')
+        posDictMpileup = {}
+        for line in infile:
+            lineSplit = line.strip().split('\t')
+            pos = lineSplit[1]
+            posDictMpileup[pos] = lineSplit[3::3]
+
+        infile.close()
+            
+
+        
+        outfileFP = open(output.fp, 'w')
+        outfileFN = open(output.fn, 'w')
+       
+        numRows = 0
+        truePositives = 0
+        trueNegatives = 0
+        falsePositives = 0
+        falseNegatives = 0
+        posDictInfered = {}
+        infile = open(input.sciphi, 'r')
+        for line in infile:
+            lineSplit = line.strip().split('\t')
+            if not line.startswith("#") and not line.startswith("chrom"):
+                numRows += 1
+                pos = lineSplit[1]
+                posDictInfered[pos] = lineSplit[1:]
+                if pos in posDictTruth:
+                    cellId = 0
+                    for value in lineSplit[2:]:
+                        # ignore missing value fields
+                        if int(posDictMpileup[pos][cellId]) > 0:
+
+                            if value == '1':
+                                if posDictTruth[pos][cellId] != '0' and posDictTruth[pos][cellId] != '4':
+                                    truePositives += 1
+                                else:
+                                    falsePositives += 1
+                                    outfileFP.write(pos + "\t" + str(cellId) + "\n")
+                            elif value == '0':
+                                if posDictTruth[pos][cellId] != '0' and posDictTruth[pos][cellId] != '4':
+                                    falseNegatives += 1
+                                    outfileFN.write(pos + "\t" + str(cellId) + "\n")
+                                else:
+                                    trueNegatives += 1
+                            elif value == 'NA':
+                                pass
+                            else:
+                                print("Unknown value: ", value)
+                        else:
+                            if value != 'NA':
+                                print("PROBLEM: 1:" + pos + " " + value)
+                        cellId += 1
+                else:
+                    cellId = 0
+                    for value in lineSplit[2:]:
+                        # ignore missing value fields
+                        if int(posDictMpileup[pos][cellId]) > 0:
+
+                            if value == '1':
+                                falsePositives += 1
+                                outfileFP.write(pos + "\t" + str(cellId) + "\n")
+                            elif value == '0':
+                                trueNegatives += 1
+                            elif value == 'NA':
+                                pass
+                            else:
+                                print("Unknown value: ", value)
+                        else:
+                            if value != 'NA':
+                                print("PROBLEM: 2")
+                        cellId += 1
+        infile.close()
+
+        for pos in posDictTruth:
+            if not (pos in posDictInfered):
+                numRows += 1
+                cellId = 0
+                for value in posDictTruth[pos]:
+                    # ignore missing value fields
+                    if int(posDictMpileup[pos][cellId]) > 0:
+
+                        if value == '0' or value == '4':
+                            trueNegatives += 1
+                        else:
+                            falseNegatives += 1
+                            outfileFN.write(pos + "\t" + str(cellId) + "\n")
+                    cellId += 1
+
+        #trueNegatives += (NUMPOSITIONS - numRows) * int(wildcards.cells)
+        trueNegatives = "NA"
+                        
+        outfile = open(output.txt, 'w')
+        outfile.write("truePositives\ttrueNegatives\tfalsePositives\tfalseNegatives\n")
+        outfile.write(str(truePositives) + "\t" + str(trueNegatives) + "\t" + str(falsePositives) + "\t" + str(falseNegatives) + "\n")
+        outfile.close()
+
+rule createPNCounts:
+    input:
+        mpileup = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/run_{run}/combined.mpileup',
+        txt = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/run_{run}/prior_{prior}/{tool}/{sample}_false_{type}.txt'
+    output:
+        txt = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/run_{run}/prior_{prior}/{tool}/{sample}_false_{type}_nucleotides.txt'
+    params:
+        lsfoutfile = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/run_{run}/prior_{prior}/{tool}/{sample}_false_{type}_nucleotides.txt.lsfout.log',
+        lsferrfile = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/run_{run}/prior_{prior}/{tool}/{sample}_false_{type}_nucleotides.txt.lsferr.log',
+        scratch = '10000',
+        mem = '10000',
+        time = '60'
+    benchmark:
+        OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/run_{run}/prior_{prior}/{tool}/{sample}_false_{type}_nucleotides.txt.benchmark'
+    shell:
+        PYTHON3 + ' ' + CREATEFPCOUNTS + ' {input.txt} {input.mpileup} {output.txt}'
+
+localrules: gatherBenchmarksNumCells
+rule gatherBenchmarksNumCells:
+    input:
+        expand(OUTDIR + 'cells_{numCells}/muts_100/drop_0.2/zyg_0/run_{run}/prior_0.0001/sciphi/force_zyg_0/sciphi_{{distance}}.txt', numCells = NUMCELLS, run = range(0, NUMRUNS)),
+        expand(OUTDIR + 'cells_{numCells}/muts_100/drop_0.2/zyg_0/run_{run}/prior_0.002/monovar/monovar_distance.txt', numCells = NUMCELLS, run = range(0, NUMRUNS)),
+    output:
+        txt = OUTDIR + '{distance}_numCells.txt',
+        rec = OUTDIR + '{distance}_numCells_pre.pdf',
+        pre = OUTDIR + '{distance}_numCells_rec.pdf',
+        f1 = OUTDIR +  '{distance}_numCells_f1.pdf'
+    shell:
+        (PYTHON3 + ' ' + GATHERBENCH + ' {output.txt} {input}; ' +
+        PLOTNUMCELLS + ' {output.txt}')
+
+localrules: gatherBenchmarksPrior
+rule gatherBenchmarksPrior:
+    input:
+        expand(OUTDIR + 'cells_25/muts_100/drop_0.2/zyg_0/run_{run}/prior_{prior}/sciphi/force_zyg_0/sciphi_{{distance}}.txt', prior = PRIORSSCIPHI, run = range(0, NUMRUNS)),
+        expand(OUTDIR + 'cells_25/muts_100/drop_0.2/zyg_0/run_{run}/prior_{prior}/monovar/monovar_distance.txt', prior = PRIORSMONOVAR, run = range(0, NUMRUNS)),
+    output:
+        txt = OUTDIR + '{distance}_prior.txt',
+        rec = OUTDIR + '{distance}_prior_rec.pdf',
+        pre = OUTDIR + '{distance}_prior_pre.pdf',
+        f1 = OUTDIR +  '{distance}_prior_f1.pdf'
+    shell:
+        (PYTHON3 + ' ' + GATHERBENCH + ' {output.txt} {input}; ' +
+        PLOTPRIORS + ' {output.txt}')
+
+localrules: gatherBenchmarksDropOuts
+rule gatherBenchmarksDropOuts:
+    input:
+        expand(OUTDIR + 'cells_25/muts_100/drop_{drop}/zyg_0/run_{run}/prior_0.0001/sciphi/force_zyg_0/sciphi_{{distance}}.txt', drop = DROPOUTS, run = range(0, NUMRUNS)),
+        expand(OUTDIR + 'cells_25/muts_100/drop_{drop}/zyg_0/run_{run}/prior_0.002/monovar/monovar_distance.txt', drop = DROPOUTS, run = range(0, NUMRUNS)),
+    output: 
+        txt = OUTDIR + '{distance}_drop.txt',
+        rec = OUTDIR + '{distance}_drop_rec.pdf',
+        pre = OUTDIR + '{distance}_drop_pre.pdf',
+        f1 = OUTDIR +  '{distance}_drop_f1.pdf'
+    shell:
+        (PYTHON3 + ' ' + GATHERBENCH + ' {output.txt} {input}; ' +
+        PLOTDROPOUTS + ' {output.txt}')
+
+localrules: gatherBenchmarksZygs
+rule gatherBenchmarksZygs:
+    input:
+        expand(OUTDIR + 'cells_25/muts_100/drop_0.2/zyg_{zyg}/run_{run}/prior_0.0001/sciphi/force_zyg_1/sciphi_{{distance}}.txt', zyg = ZYGS, run = range(0, NUMRUNS)),
+        expand(OUTDIR + 'cells_25/muts_100/drop_0.2/zyg_{zyg}/run_{run}/prior_0.002/monovar/monovar_distance.txt', zyg = ZYGS, run = range(0, NUMRUNS)),
+    output:
+        txt = OUTDIR + '{distance}_zyg.txt',
+        rec = OUTDIR + '{distance}_zyg_rec.pdf',
+        pre = OUTDIR + '{distance}_zyg_pre.pdf',
+        f1 = OUTDIR +  '{distance}_zyg_f1.pdf'
+    shell:
+        (PYTHON3 + ' ' + GATHERBENCH + ' {output.txt} {input}; ' +
+        PLOTCLBMS + ' {output.txt}')

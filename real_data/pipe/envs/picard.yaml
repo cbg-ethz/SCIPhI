@@ -1,0 +1,6 @@
+channels:
+  - bioconda
+  - defaults
+  - conda-forge
+dependencies:
+  - picard=2.17.2
