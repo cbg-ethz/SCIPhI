@@ -17,17 +17,19 @@ SCIPhI has the **following dependencies** which need to be installed:
 * `DLIB >= 19.9`
 * `zlib`
 
-In order to install SCIPhI issue the following commands:
+In order to install SCIPhI issue the following commands in the github directory:
 
-autoreconf -vif
-./configure --with-boost=BOOST_PATH SEQAN_INCLUDEDIR=SEQAN_PATH DLIB_INCLUDEDIR=DLIB_PATH
-make
+`autoreconf -vif`
+
+`./configure --with-boost=BOOST_PATH SEQAN_INCLUDEDIR=SEQAN_PATH DLIB_INCLUDEDIR=DLIB_PATH`
+
+`make`
 
 ## Run SCIPhI
 
 In order to see all available options
 
-./sciphi -h
+`sciphi -h`
 
 Executing
 
