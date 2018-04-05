@@ -15,7 +15,7 @@ SCIPhI has the **following dependencies** which need to be installed:
 * `Boost >= 1.6.x`,
 * `SeqAn >= 2.3.2`,
 * `DLIB >= 19.9`
-* 'zlib'
+* `zlib`
 
 In order to install SCIPhI issue the following commands:
 
@@ -28,3 +28,9 @@ make
 In order to see all available options
 
 ./sciphi -h
+
+Executing
+
+`sciphi -o result --in cellNames.txt --cwm 3 --nmc 2 --ms 3 --lz 1 --seed 42 example.mpileup`
+
+will run SCIPhI using the cell names provided in *cellNames.txt* (same order as in the mpileup file), requires that at least three cells show the mutation (*cwm*) and at least two cells (*nmc*) have a alternative read count support of at least 3 (*ms*).
