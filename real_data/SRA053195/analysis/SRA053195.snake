@@ -189,9 +189,6 @@ rule sciphi:
         '--nmc 2 ' +
         '--lz 1 ' +
         '--pr 0.001 ' +
-        #'--cms 1 ' + 
-        #'--mspa 1 ' +
-        #'--mspb 1 ' +
         '--seed {wildcards.run} ' +
         '{input.mpileup}')
 
