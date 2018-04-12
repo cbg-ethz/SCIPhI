@@ -249,6 +249,8 @@ class Config{
     unsigned                                    numMinCoverageAcrossCells;
     unsigned                                    minSupport;
     double                                      minFreq;
+    unsigned                                    minCovInControlBulk;
+    unsigned                                    maxSupInControlBulk;
     ParamsCounter                               paramsCounter;
     double                                      noiseScore;
     bool                                        learnZygocity;
@@ -293,6 +295,8 @@ class Config{
         numMinCoverageAcrossCells(0),
         minSupport(0),
         minFreq(0),
+        minCovInControlBulk(6),
+        maxSupInControlBulk(2),
         noiseScore(0),
         learnZygocity(false),
         computeMixScore(false),
