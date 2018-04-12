@@ -102,6 +102,8 @@ int readParameters(Config<TTreeType> & config, int argc, char* argv[]){
 		("ms", boost::program_options::value<decltype(config.minSupport)>(&config.minSupport), "Minimum number of reads required to support the alternative.")
 		("mf", boost::program_options::value<decltype(config.minCoverage)>(&config.minCoverage), "Minimum required frequency of reads supporting the alternative per cell.")
 		("mff", boost::program_options::value<decltype(config.meanFilter)>(&config.meanFilter), "Mean of acceptable variant allele frequency across all cells for a specific locus.")
+		("bns", boost::program_options::value<decltype(config.maxSupInControlBulk)>(&config.minSupport), "Loci with up to this number of alternative supporting reads in the bulk control sample will be skiped.")
+		("bnc", boost::program_options::value<decltype(config.minCovInControlBulk)>(&config.minCoverage), "Minimum required coverage of reads in the bulk control sample.")
 		//("cms", boost::program_options::value<decltype(config.computeMixScore)>(&config.computeMixScore), "Compute the mix score = allow a mutation to be homozygous or lost in a subtree.") - feature still in experimental phase
 		//("mspa", boost::program_options::value<double>(&config.clamPrior[0]), "The alpha parameter of the beta function used as prior on the rate of loosing a chromosome after some mutation occurred.") - feature still in experimental phase
 		//("mspb", boost::program_options::value<double>(&config.clamPrior[1]), "The beta parameter of the beta function used as prior on the rate of loosing a chromosome after some mutation occurred.") - feature still in experimental phase
