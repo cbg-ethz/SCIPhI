@@ -265,7 +265,7 @@ class Config{
 	Config() :
         params{{TParamsTuple{100.0,100.0}, 
                 TParamsTuple{2, 2}, 
-                TParamsTuple{0.0001, 0.0001},
+                TParamsTuple{0.001, 0.001},
                 TParamsTuple{0.9, 0.9},
                 TParamsTuple{0, 0},
                 TParamsTuple{0, 0}}},
@@ -283,7 +283,7 @@ class Config{
         fixedSeed(42),
         scoreType('s'),
         paramsEstimateRate(0.2),
-        priorMutationRate(0.001),
+        priorMutationRate(0.0001),
         uniqTreshold(0),
         dataUsageRate{0, 0.1},
         sampleLoops(100000),
