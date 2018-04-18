@@ -1,4 +1,4 @@
-bin_PROGRAMS = sciphi convertTree2Map createSingleCellTree
+bin_PROGRAMS = sciphi convertTree2Map createSingleCellTree sciphi_test
 
 sciphi_SOURCES = \
 	src/findBestTrees.cpp
@@ -35,3 +35,15 @@ createSingleCellTree_CPPFLAGS = \
 
 createSingleCellTree_LDADD = \
 	$(ZLIB_LIBS) $(BOOST_LDFLAGS) $(BOOST_UNIT_TEST_FRAMEWORK_LIB) $(PTHREAD_CFLAGS)
+
+sciphi_test_SOURCES = \
+	test/sciphi_test.cpp
+
+sciphi_test_CXXFLAGS = \
+	$(PTHREAD_CFLAGS) $(GSL_CFLAGS)
+
+sciphi_test_CPPFLAGS = \
+	$(DLIB_CPPFLAGS) -I$(DLIB_INCLUDEDIR) $(BOOST_CPPFLAGS) @BOOST_UNIT_TEST_FRAMEWORK_CPPFLAGS@
+
+sciphi_test_LDADD = \
+	$(GSL_LIBS) $(BOOST_LDFLAGS) $(BOOST_SYSTEM_LIB) $(BOOST_PROGRAM_OPTIONS_LIB) $(BOOST_FILESYSTEM_LIB) $(BOOST_IOSTREAMS_LIB) $(DLIB_LDFLAGS) $(BOOST_UNIT_TEST_FRAMEWORK_LIB)
