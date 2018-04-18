@@ -510,60 +510,6 @@ passNormalFilter(std::array<unsigned, 5> const & normalCounts, Config<TTreeType>
     return false;
 }
 
-template<typename TVector>
-double opt2(TVector const & data, unsigned charId, double & bestMean)
-{
-    double result = 0;
-    double bestResult = -INFINITY;
-    for (unsigned overDis = 1; overDis <= 1000; ++overDis)
-    {
-        for (unsigned mean = 1; mean <= 100; ++mean)
-        {
-            result = 0;
-            for (size_t cell = 0; cell < data.size(); ++cell)
-            {
-                if (data[cell][charId] > 0)
-                {
-                    result += logBetaBinPDF(data[cell][charId], data[cell][4], mean/100.0, overDis/10.0);
-                }
-            }
-            //std::cout << std::log(overDis) << "\t" << mean/100.0 << "\t" << result << std::endl;
-            if (result > bestResult)
-            {
-                bestResult = result;
-                bestMean = mean/100.0;
-            }
-        }
-    }
-    //char c;
-    //std::cin >> c;
-    //std::cout << std::endl;
-    return bestResult;
-}
-
-template<typename TVector>
-double opt1(TVector const & data, unsigned charId)
-{
-    double result = 0;
-    double bestResult = -INFINITY;
-    for (unsigned overDis = 1; overDis < 1000; ++overDis)
-    {
-        result = 0;
-        for (size_t cell = 0; cell < data.size(); ++cell)
-        {
-            if (data[cell][charId] > 0)
-            {
-                result += logBetaBinPDF(data[cell][charId], data[cell][4], 0.5, overDis/10.0);
-            }
-        }
-        if (result > bestResult)
-        {
-            bestResult = result;
-        }
-    }
-    return bestResult;
-}
-
 template <typename TTreeType>
 bool readMpileupFile(Config<TTreeType> & config)
 {
@@ -627,7 +573,6 @@ bool readMpileupFile(Config<TTreeType> & config)
 
     while (getline(inputStream, currLine))
     {
-       // std::cout << "currentLine: " << currLine << std::endl;
         // solit the current line into easily accessible chunks
         boost::split(splitVec, currLine, boost::is_any_of("\t"));
         // print the progress
@@ -659,9 +604,7 @@ bool readMpileupFile(Config<TTreeType> & config)
                 {
                     continue;
                 }
-                // compute h0
                 bool h0Wins = !applyFilterAcrossCells(filteredCounts, config, j);
-                //std::cout << "0-h0Wins: " << h0Wins << std::endl;
 
                 double logH0 = -DBL_MAX;
                 double logH1 = -DBL_MAX;
@@ -675,11 +618,6 @@ bool readMpileupFile(Config<TTreeType> & config)
                         cellsMutated[i-1] = computeRawMutLogScore(config, filteredCounts[i - 1][j], filteredCounts[i - 1][4]);
                         tempLogProbs[i] = tempLogProbs[i - 1] + cellsNotMutated[i - 1];
 
-                        //if(splitVec[1] == "15767551")
-                        //{
-                        //    std::cout << i << " " << filteredCounts[i-1][j] << " " << filteredCounts[i - 1][4] << std::endl;
-                        //    std::cout << i << " " << cellsNotMutated[i-1] << " " << cellsMutated[i-1] << " " << tempLogProbs[i] << std::endl;
-                        //}
                     }
                     swap(logProbs, tempLogProbs);
                     logH0 = logProbs.back() + log(1.0 - config.priorMutationRate); 
@@ -698,28 +636,20 @@ bool readMpileupFile(Config<TTreeType> & config)
                         for (size_t i = numMut + 1; i < filteredCounts.size() + 1; ++i)
                         {
                             double previousCellNotMutated = logProbs[i - 1];
-                            //std::cout << "previousCellNotMutated:" << i << " " << std::exp(previousCellNotMutated) << std::endl;
-                            currentCellMutated = cellsMutated[i - 1]; //computeRawMutLogScore(config, filteredCounts[i - 1][j], filteredCounts[i - 1][4]);
-                            //std::cout << "currentCellMutated:" << i << " " << std::exp(currentCellMutated) << std::endl;
+                            currentCellMutated = cellsMutated[i - 1]; 
                             double previousCellMutated = tempLogProbs[i -1];
-                            //std::cout << "previousCellMutated:" << i << " " << std::exp(previousCellMutated) << std::endl;
-                            double currentCellNotMutated = cellsNotMutated[i - 1]; //computeWildLogScore(config, filteredCounts[i - 1][j], filteredCounts[i - 1][4]);
-                            //std::cout << "currentCellNotMutated:" << i << " " << std::exp(currentCellNotMutated) << std::endl;
+                            double currentCellNotMutated = cellsNotMutated[i - 1]; 
                             tempLogProbs[i] = addLogProb(previousCellNotMutated + currentCellMutated,  
                                         previousCellMutated + currentCellNotMutated);
 
-                            //std::cout << i << ":" << std::exp(tempLogProbs[i]) << " ";
                         }
-                        //std::cout << std::endl;
                         swap(logProbs, tempLogProbs);
                         logNOverK = logNChooseK(numCells, numMut, logNOverK);
                         double logH1Temp = logProbs.back() + log(config.priorMutationRate) - logNOverK;
                         logH1Temp = updateLogH1Temp(logH1Temp, numCells, numMut);
 
                         // check whether the alternative hyothesis can win
-                        //std::cout << "1-h0Wins: " << numMut << " " << h0Wins << std::endl;
                         h0Wins = mustH0Win(logH1Max, logH1Temp, logNumCells, logH0);
-                        //std::cout << "2-h0Wins: " << h0Wins << std::endl;
                         logProbTempValues[numMut] = logH1Temp;
                         if (h0Wins)
                         { 
@@ -739,29 +669,10 @@ bool readMpileupFile(Config<TTreeType> & config)
                     logH1 = sumValuesInLogSpace(logProbTempValues.begin() + config.numCellWithMutationMin, logProbTempValues.end());
                 }
                 
-                //if(splitVec[1] == "15767551")
-                //{
-                //    for (int t = 0; t < logProbTempValues.size(); ++t)
-                //        std::cout <<t<< " "<<  logProbTempValues[t] << std::endl;
-                //    for (size_t cell = 0; cell < counts.size(); ++cell)
-                //    {
-                //        std::cout << counts[cell][j] << ":" << counts[cell][4] << "\t";
-                //    }
-                //    std::cout << std::endl;
-                //    std::cout << "Test: " << logH0 << " " << logH1 << " " << config.getParam(Config<TTreeType>::wildMean) << " " << config.getParam(Config<TTreeType>::wildOverDis) << " " << config.getParam(Config<TTreeType>::mutationOverDis) << std::endl;
-                //    char c;
-                //    std::cin >> c;
-                //    std::cout << std::endl;
-                //}
 
                 if (logH1 > logH0)
                 {
                     positionMutated = true;
-                    //for (size_t cell = 0; cell < counts.size(); ++cell)
-                    //{
-                    //    std::cout << counts[cell][j] << ":" << counts[cell][4] << "\t";
-                    //}
-                    //std::cout << std::endl;
 
                     static std::vector<std::pair<unsigned, unsigned>> testCounts;
                     testCounts.resize(0);
