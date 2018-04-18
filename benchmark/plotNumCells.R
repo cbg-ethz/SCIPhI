@@ -18,7 +18,6 @@
 # along with SCIPhI. If not, see <http://www.gnu.org/licenses/>.
 # 
 # @author: Jochen Singer
-#! Rscript
 library(ggplot2)
 
 args <- commandArgs(TRUE)
@@ -27,14 +26,13 @@ inputName <- args[1]
 df <- read.table(inputName, header = TRUE)
 df$cells <- as.factor(df$cells)
 ggplot(data = df, aes(x = cells, y = recall, fill = tool)) + 
-  geom_boxplot(outlier.size = NULL) +
-  geom_point(position = position_jitterdodge(jitter.width = 1)) +
+  geom_point(position = position_jitterdodge(jitter.width = 1), aes(colour = tool), show.legend = FALSE) +
+  geom_boxplot(outlier.size = NULL, outlier.shape = NA, alpha = 0.5) +
   xlab("Number of cells") +
   ylab("Recall") +
-  scale_y_continuous(limits = c(0.6, 1)) +
-  #expand_limits(y=1) +
+  scale_y_continuous(limits = c(0.5, 1)) +
   theme(legend.title=element_blank(),
-        legend.position = c(0.7, 0.2),
+        legend.position = c(0.8, 0.2),
         text = element_text(size=25),
         legend.text.align = 0,
         legend.key.size = unit(3., 'lines')) +
@@ -42,13 +40,13 @@ ggplot(data = df, aes(x = cells, y = recall, fill = tool)) +
 ggsave(paste(gsub(".txt","",inputName), "_rec.pdf", sep=""))
   
 ggplot(data = df, aes(x = cells, y = precision, fill = tool)) + 
-  geom_boxplot(outlier.size = NULL) +
-  geom_point(position = position_jitterdodge(jitter.width = 1)) +
+  geom_point(position = position_jitterdodge(jitter.width = 1), aes(colour = tool), show.legend = FALSE) +
+  geom_boxplot(outlier.size = NULL, outlier.shape = NA, alpha = 0.5) +
   xlab("Number of cells") +
   ylab("Precision") +
   expand_limits(y=0.9) +
   theme(legend.title=element_blank(),
-        legend.position = c(0.7, 0.2),
+        legend.position = c(0.8, 0.2),
         text = element_text(size=25),
         legend.text.align = 0,
         legend.key.size = unit(3., 'lines')) +
@@ -56,13 +54,13 @@ ggplot(data = df, aes(x = cells, y = precision, fill = tool)) +
 ggsave(paste(gsub(".txt","",inputName), "_pre.pdf", sep=""))
 
 ggplot(data = df, aes(x = cells, y = f1, fill = tool)) + 
-  geom_boxplot(outlier.size = NULL) +
-  geom_point(position = position_jitterdodge(jitter.width = 1)) +
+  geom_point(position = position_jitterdodge(jitter.width = 1), aes(colour = tool), show.legend = FALSE) +
+  geom_boxplot(outlier.size = NULL, outlier.shape = NA, alpha = 0.5) +
   xlab("Number of cells") +
   ylab("F1 score") +
-  scale_y_continuous(limits = c(0.7, 1)) +
+  scale_y_continuous(limits = c(0.6, 1)) +
   theme(legend.title=element_blank(),
-        legend.position = c(0.7, 0.2),
+        legend.position = c(0.8, 0.2),
         text = element_text(size=25),
         legend.text.align = 0,
         legend.key.size = unit(3., 'lines')) +
