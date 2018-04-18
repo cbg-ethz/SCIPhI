@@ -492,15 +492,15 @@ void insertData(Config<TTreeType> & config, TData const & data)
     }
 }
 
-inline
+template <typename TTreeType>
 bool
-passNormalFilter(std::array<unsigned, 5> const & normalCounts)
+passNormalFilter(std::array<unsigned, 5> const & normalCounts, Config<TTreeType> const & config)
 {
-    if (normalCounts[4] >= 6)
+    if (normalCounts[4] >= config.minCovInControlBulk)
     {
         for (unsigned i = 0; i < 4; ++i)
         {
-            if (normalCounts[i] >= 2)
+            if (normalCounts[i] >= config.maxSupInControlBulk)
             {
                 return false;
             }
@@ -640,7 +640,7 @@ bool readMpileupFile(Config<TTreeType> & config)
             if (normalBulkPos != UINT_MAX)
             {
                 extractSeqInformation(normalBulkCounts, splitVec, normalBulkPos);
-                if (!passNormalFilter(normalBulkCounts))
+                if (!passNormalFilter(normalBulkCounts, config))
                 {
                     continue;
                 }

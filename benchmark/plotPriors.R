@@ -18,7 +18,6 @@
 # along with SCIPhI. If not, see <http://www.gnu.org/licenses/>.
 # 
 # @author: Jochen Singer
-#! Rscript
 library(ggplot2)
 
 args <- commandArgs(TRUE)
@@ -38,8 +37,8 @@ tool_labeller <- function(variable,value){
 }
 
 ggplot(data = df, aes(x = prior, y = recall, fill = tool)) + 
-  geom_boxplot(outlier.size = NULL) +
-  geom_point(position = position_jitterdodge(jitter.width = 1)) +
+  geom_point(position = position_jitterdodge(jitter.width = 1), aes(colour = tool), show.legend = FALSE) +
+  geom_boxplot(outlier.size = NULL, outlier.shape = NA, alpha = 0.5) +
   xlab("Prior") +
   ylab("Recall") +
   facet_grid(.~tool, scales = "free_x", labeller=tool_labeller) +
@@ -50,8 +49,8 @@ ggplot(data = df, aes(x = prior, y = recall, fill = tool)) +
 ggsave(paste(gsub(".txt","",inputName), "_rec.pdf", sep=""))
 
 ggplot(data = df, aes(x = prior, y = precision, fill = tool)) + 
-  geom_boxplot(outlier.size = NULL) +
-  geom_point(position = position_jitterdodge(jitter.width = 1)) +
+  geom_point(position = position_jitterdodge(jitter.width = 1), aes(colour = tool), show.legend = FALSE) +
+  geom_boxplot(outlier.size = NULL, outlier.shape = NA, alpha = 0.5) +
   xlab("Prior") +
   ylab("Precision") +
   expand_limits(y=0.9) +
@@ -62,8 +61,8 @@ ggplot(data = df, aes(x = prior, y = precision, fill = tool)) +
 ggsave(paste(gsub(".txt","",inputName), "_pre.pdf", sep=""))
 
 ggplot(data = df, aes(x = prior, y = f1, fill = tool)) + 
-  geom_boxplot(outlier.size = NULL) +
-  geom_point(position = position_jitterdodge(jitter.width = 1)) +
+  geom_point(position = position_jitterdodge(jitter.width = 1), aes(colour = tool), show.legend = FALSE) +
+  geom_boxplot(outlier.size = NULL, outlier.shape = NA, alpha = 0.5) +
   xlab("Prior") +
   ylab("F1 score") +
   facet_grid(.~tool, scales = "free_x", labeller=tool_labeller) +
