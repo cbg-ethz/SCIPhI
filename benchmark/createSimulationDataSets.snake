@@ -23,7 +23,7 @@ from subprocess import call
 from snakemake.utils import R
 import random
 
-OUTDIR = "simulation"
+OUTDIR = "simulation/"
 NUMPOSITIONS = 1000000
 DROPOUTRATE = 0.2
 LOOPS = 1000000
@@ -34,9 +34,10 @@ PRIORSSCIPHI = ['0.01','0.001','0.0001','0.00001','0.000001',]
 PRIORSMONOVAR = ['0.2','0.02','0.002','0.0002','0.00002',]
 DROPOUTS = ['0', '0.1', '0.2', '0.3']
 ZYGS = ['0', '0.1', '0.2', '0.3']
+CPNS = ['0', '0.125', '0.25', '0.375', '0.5']
 NUMRUNS = 50
 MDAERRORRATE = 0.0000005
-SEQUENCINGERRORRATE = 0.0005
+SEQUENCINGERRORRATE = 0.001
 COVMEAN = 25
 COVVAR = 50
 AVERAGEREGIONLENGTH = 1000
@@ -49,28 +50,29 @@ rule all:
         OUTDIR + 'distance_drop.txt',
         OUTDIR + 'distance_prior.txt',
         OUTDIR + 'distance_zyg.txt',
+        OUTDIR + 'distance_cpn.txt',
 
 def getSeed(wildcards):
     return str(int(wildcards.run) + 2)
 
 rule createTree:
     output:
-        tsvArt = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/run_{run}/art_tree_mut2sample.tsv',
+        tsvArt = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/cpn_{cpn}/run_{run}/art_tree_mut2sample.tsv',
     params:
-        lsfoutfile = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/run_{run}/art_tree_mutations.lsfout.log',
-        lsferrfile = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/run_{run}/art_tree_mutations.lsferr.log',
+        lsfoutfile = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/cpn_{cpn}/run_{run}/art_tree_mutations.lsfout.log',
+        lsferrfile = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/cpn_{cpn}/run_{run}/art_tree_mutations.lsferr.log',
         scratch = '1000',
         mem = '1000',
         time = '1',
-        out = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/run_{run}/art_tree',
+        out = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/cpn_{cpn}/run_{run}/art_tree',
         numPos = str(NUMPOSITIONS),
         seed = getSeed
     benchmark:
-        OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/run_{run}/art_tree_mutations.benchmark'
+        OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/cpn_{cpn}/run_{run}/art_tree_mutations.benchmark'
     threads:
         1
     log:
-        OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/run_{run}/art_tree_mutations.log'
+        OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/cpn_{cpn}/run_{run}/art_tree_mutations.log'
     shell:
         (CREATESINGLECELLTREE + ' ' +
         '-nml ' +
@@ -78,27 +80,22 @@ rule createTree:
         '-s {params.seed} ' +
         '-dor {wildcards.drop} ' +
         '-clbm {wildcards.zyg} ' +
+        '-cpn {wildcards.cpn} ' +
         '-mi 0 ' +
         '-ns {wildcards.cells} ' +
         '-nm {wildcards.muts} ' +
         '-np {params.numPos}')
 
-def getPileups(wildcards):
-    output = []
-    for i in range(0, int(wildcards.cells)):
-        output.append(OUTDIR + 'cells_' + wildcards.cells + '/muts_' + wildcards.muts + '/drop_' + wildcards.drop + '/zyg_' + wildcards.zyg + '/run_' + wildcards.run + '/cell' + str(i) + '/final_sorted.mpileup')
-    return output
-
 def getBams(wildcards):
     output = []
     for i in range(0, int(wildcards.cells)):
-        output.append(OUTDIR + 'cells_' + wildcards.cells + '/muts_' + wildcards.muts + '/drop_' + wildcards.drop + '/zyg_' + wildcards.zyg + '/run_' + wildcards.run + '/cell' + str(i) + '/' + str(i) + '.bam')
+        output.append(OUTDIR + 'cells_' + wildcards.cells + '/muts_' + wildcards.muts + '/drop_' + wildcards.drop + '/zyg_' + wildcards.zyg + '/cpn_' + wildcards.cpn + '/run_' + wildcards.run + '/cell' + str(i) + '/' + str(i) + '.bam')
     return output
 
 localrules: createBamFileSummary
 rule createBamFileSummary:
     output:
-        OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/run_{run}/bamFileNames.txt'
+        OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/cpn_{cpn}/run_{run}/bamFileNames.txt'
     params: 
         bams = getBams
     shell:
@@ -106,27 +103,27 @@ rule createBamFileSummary:
         touch {output}
         for file in {params.bams}
         do
-            echo $file >> {output}
             mkdir -p $(dirname $file)
             touch $file
+            echo $file >> {output}
         done
         '''
 
 rule createMpileup:
     input:
-        tsv = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/run_{run}/art_tree_mut2sample.tsv',
+        tsv = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/cpn_{cpn}/run_{run}/art_tree_mut2sample.tsv',
     output:
-        mpileup = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/run_{run}/combined.mpileup',
-        ref = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/run_{run}/combined.fa'
+        mpileup = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/cpn_{cpn}/run_{run}/combined.mpileup',
+        ref = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/cpn_{cpn}/run_{run}/combined.fa'
     params:
-        lsfoutfile = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/run_{run}/combined.lsfout.log',
-        lsferrfile = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/run_{run}/combined.lsferr.log',
+        lsfoutfile = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/cpn_{cpn}/run_{run}/combined.lsfout.log',
+        lsferrfile = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/cpn_{cpn}/run_{run}/combined.lsferr.log',
         scratch = '2000',
         mem = '2000',
         time = '180',
         seed = getSeed
     benchmark:
-        OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/run_{run}/combined.benchmark'
+        OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/cpn_{cpn}/run_{run}/combined.benchmark'
     shell:
         (PYTHON3 + ' ' + CREATEMPILEUP + ' ' +
         '-i {output.ref} ' +
@@ -145,7 +142,7 @@ rule createMpileup:
 localrules: createBamFileSummaryScate
 rule createBamFileSummaryScate:
     output:
-        OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/run_{run}/prior_{prior}/sciphi/force_zyg_{fzyg}/input_spec.txt'
+        OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/cpn_{cpn}/run_{run}/prior_{prior}/sciphi/force_zyg_{fzyg}/input_spec.txt'
     params: 
         bams = getBams
     shell:
@@ -164,30 +161,30 @@ def getZyg(wildcards):
 
 rule sciphi:
     input:
-        fileNames = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/run_{run}/prior_{prior}/sciphi/force_zyg_{fzyg}/input_spec.txt',
-        mpileups = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/run_{run}/combined.mpileup'
+        fileNames = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/cpn_{cpn}/run_{run}/prior_{prior}/sciphi/force_zyg_{fzyg}/input_spec.txt',
+        mpileups = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/cpn_{cpn}/run_{run}/combined.mpileup'
     output:
-        tsv = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/run_{run}/prior_{prior}/sciphi/force_zyg_{fzyg}/sciphi_mut2Sample.tsv',
-        gv = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/run_{run}/prior_{prior}/sciphi/force_zyg_{fzyg}/sciphi.gv',
-        probs = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/run_{run}/prior_{prior}/sciphi/force_zyg_{fzyg}/sciphi.probs',
-        params = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/run_{run}/prior_{prior}/sciphi/force_zyg_{fzyg}/sciphi.params.txt',
-        vcf = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/run_{run}/prior_{prior}/sciphi/force_zyg_{fzyg}/sciphi.vcf'
+        tsv = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/cpn_{cpn}/run_{run}/prior_{prior}/sciphi/force_zyg_{fzyg}/sciphi_mut2Sample.tsv',
+        gv = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/cpn_{cpn}/run_{run}/prior_{prior}/sciphi/force_zyg_{fzyg}/sciphi.gv',
+        probs = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/cpn_{cpn}/run_{run}/prior_{prior}/sciphi/force_zyg_{fzyg}/sciphi.probs',
+        params = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/cpn_{cpn}/run_{run}/prior_{prior}/sciphi/force_zyg_{fzyg}/sciphi.params.txt',
+        vcf = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/cpn_{cpn}/run_{run}/prior_{prior}/sciphi/force_zyg_{fzyg}/sciphi.vcf'
     params:
-        lsfoutfile = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/run_{run}/prior_{prior}/sciphi/force_zyg_{fzyg}/sciphi_mutations.lsfout.log',
-        lsferrfile = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/run_{run}/prior_{prior}/sciphi/force_zyg_{fzyg}/sciphi_mutations.lsferr.log',
+        lsfoutfile = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/cpn_{cpn}/run_{run}/prior_{prior}/sciphi/force_zyg_{fzyg}/sciphi_mutations.lsfout.log',
+        lsferrfile = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/cpn_{cpn}/run_{run}/prior_{prior}/sciphi/force_zyg_{fzyg}/sciphi_mutations.lsferr.log',
         scratch = '1000',
         mem = '1000',
         time = '60',
-        out = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/run_{run}/prior_{prior}/sciphi/force_zyg_{fzyg}/sciphi',
+        out = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/cpn_{cpn}/run_{run}/prior_{prior}/sciphi/force_zyg_{fzyg}/sciphi',
         loops = str(LOOPS),
         zyg = getZyg,
         seed = getSeed
     benchmark:
-        OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/run_{run}/prior_{prior}/sciphi/force_zyg_{fzyg}/sciphi_mutations.benchmark'
+        OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/cpn_{cpn}/run_{run}/prior_{prior}/sciphi/force_zyg_{fzyg}/sciphi_mutations.benchmark'
     threads:
         1
     log:
-        OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/run_{run}/prior_{prior}/sciphi/force_zyg_{fzyg}/sciphi_mutations.log'
+        OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/cpn_{cpn}/run_{run}/prior_{prior}/sciphi/force_zyg_{fzyg}/sciphi_mutations.log'
     shell:
         (SCIPHI + 
         ' --cwm 2 ' + 
@@ -205,30 +202,30 @@ rule sciphi:
 localrules: sciphiToHeatMap
 rule sciphiToHeatMap:
     input:
-        probs = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/run_{run}/prior_{prior}/sciphi/force_zyg_{fzyg}/sciphi.probs',
-        gv = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/run_{run}/prior_{prior}/sciphi/force_zyg_{fzyg}/sciphi.gv',
+        probs = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/cpn_{cpn}/run_{run}/prior_{prior}/sciphi/force_zyg_{fzyg}/sciphi.probs',
+        gv = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/cpn_{cpn}/run_{run}/prior_{prior}/sciphi/force_zyg_{fzyg}/sciphi.gv',
     output:
-        tsv = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/run_{run}/prior_{prior}/sciphi/force_zyg_{fzyg}/sciphi_heatTree.tsv',
-        pdf = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/run_{run}/prior_{prior}/sciphi/force_zyg_{fzyg}/sciphi_heatTree.pdf'
+        tsv = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/cpn_{cpn}/run_{run}/prior_{prior}/sciphi/force_zyg_{fzyg}/sciphi_heatTree.tsv',
+        pdf = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/cpn_{cpn}/run_{run}/prior_{prior}/sciphi/force_zyg_{fzyg}/sciphi_heatTree.pdf'
     shell:
         CONVERTTREE2MAP + ' -i {input.gv} -p {input.probs} -o {output.tsv}; ' + PLOTSCIPHIHEATTREE + ' {output.tsv} {output.pdf}'
 
 
 rule monovar:
     input:
-        ref = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/run_{run}/combined.fa',
-        mpileup = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/run_{run}/combined.mpileup',
-        fileNames = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/run_{run}/bamFileNames.txt'
+        ref = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/cpn_{cpn}/run_{run}/combined.fa',
+        mpileup = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/cpn_{cpn}/run_{run}/combined.mpileup',
+        fileNames = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/cpn_{cpn}/run_{run}/bamFileNames.txt'
     output:
-        OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/run_{run}/prior_{prior}/monovar/monovar.vcf'
+        OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/cpn_{cpn}/run_{run}/prior_{prior}/monovar/monovar.vcf'
     params:
-        lsfoutfile = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/run_{run}/prior_{prior}/monovar/monovar.vcf.lsfout.log',
-        lsferrfile = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/run_{run}/prior_{prior}/monovar/monovar.vcf.lsferr.log',
-        scratch = '10000',
-        mem = '10000',
-        time = '60',
+        lsfoutfile = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/cpn_{cpn}/run_{run}/prior_{prior}/monovar/monovar.vcf.lsfout.log',
+        lsferrfile = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/cpn_{cpn}/run_{run}/prior_{prior}/monovar/monovar.vcf.lsferr.log',
+        scratch = '1000',
+        mem = '1000',
+        time = '360',
     benchmark:
-        OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/run_{run}/prior_{prior}/monovar/monovar.vcf.benchmark'
+        OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/cpn_{cpn}/run_{run}/prior_{prior}/monovar/monovar.vcf.benchmark'
     shell:
         ('source ' + MONOVARACTIVATE + '; ' + 
         'cat {input.mpileup} | ' +
@@ -262,21 +259,21 @@ rule binarizeSciphiVCF:
 
 rule compare2GroundTruth:
     input:
-        sciphi = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/run_{run}/prior_{prior}/{tool}/{sample}.bin',
-        tsvArt = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/run_{run}/art_tree_mut2sample.tsv',
-        mpileup = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/run_{run}/combined.mpileup'
+        sciphi = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/cpn_{cpn}/run_{run}/prior_{prior}/{tool}/{sample}.bin',
+        tsvArt = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/cpn_{cpn}/run_{run}/art_tree_mut2sample.tsv',
+        mpileup = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/cpn_{cpn}/run_{run}/combined.mpileup'
     output: 
-        txt = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/run_{run}/prior_{prior}/{tool}/{sample}_distance.txt',
-        fp =  OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/run_{run}/prior_{prior}/{tool}/{sample}_false_positives.txt',
-        fn = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/run_{run}/prior_{prior}/{tool}/{sample}_false_negatives.txt'
+        txt = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/cpn_{cpn}/run_{run}/prior_{prior}/{tool}/{sample}_distance.txt',
+        fp =  OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/cpn_{cpn}/run_{run}/prior_{prior}/{tool}/{sample}_false_positives.txt',
+        fn = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/cpn_{cpn}/run_{run}/prior_{prior}/{tool}/{sample}_false_negatives.txt'
     params:
-        lsfoutfile = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/run_{run}/prior_{prior}/{tool}/{sample}_distance.txt.lsfout.log',
-        lsferrfile = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/run_{run}/prior_{prior}/{tool}/{sample}_distance.txt.lsferr.log',
+        lsfoutfile = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/cpn_{cpn}/run_{run}/prior_{prior}/{tool}/{sample}_distance.txt.lsfout.log',
+        lsferrfile = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/cpn_{cpn}/run_{run}/prior_{prior}/{tool}/{sample}_distance.txt.lsferr.log',
         scratch = '10000',
         mem = '10000',
         time = '60'
     benchmark:
-        OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/run_{run}/prior_{prior}/{tool}/{sample}_distance.txt.benchmark'
+        OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/cpn_{cpn}/run_{run}/prior_{prior}/{tool}/{sample}_distance.txt.benchmark'
     run:
         import time
 
@@ -389,26 +386,26 @@ rule compare2GroundTruth:
 
 rule createPNCounts:
     input:
-        mpileup = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/run_{run}/combined.mpileup',
-        txt = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/run_{run}/prior_{prior}/{tool}/{sample}_false_{type}.txt'
+        mpileup = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/cpn_{cpn}/run_{run}/combined.mpileup',
+        txt = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/cpn_{cpn}/run_{run}/prior_{prior}/{tool}/{sample}_false_{type}.txt'
     output:
-        txt = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/run_{run}/prior_{prior}/{tool}/{sample}_false_{type}_nucleotides.txt'
+        txt = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/cpn_{cpn}/run_{run}/prior_{prior}/{tool}/{sample}_false_{type}_nucleotides.txt'
     params:
-        lsfoutfile = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/run_{run}/prior_{prior}/{tool}/{sample}_false_{type}_nucleotides.txt.lsfout.log',
-        lsferrfile = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/run_{run}/prior_{prior}/{tool}/{sample}_false_{type}_nucleotides.txt.lsferr.log',
+        lsfoutfile = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/cpn_{cpn}/run_{run}/prior_{prior}/{tool}/{sample}_false_{type}_nucleotides.txt.lsfout.log',
+        lsferrfile = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/cpn_{cpn}/run_{run}/prior_{prior}/{tool}/{sample}_false_{type}_nucleotides.txt.lsferr.log',
         scratch = '10000',
         mem = '10000',
         time = '60'
     benchmark:
-        OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/run_{run}/prior_{prior}/{tool}/{sample}_false_{type}_nucleotides.txt.benchmark'
+        OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/cpn_{cpn}/run_{run}/prior_{prior}/{tool}/{sample}_false_{type}_nucleotides.txt.benchmark'
     shell:
         PYTHON3 + ' ' + CREATEFPCOUNTS + ' {input.txt} {input.mpileup} {output.txt}'
 
 localrules: gatherBenchmarksNumCells
 rule gatherBenchmarksNumCells:
     input:
-        expand(OUTDIR + 'cells_{numCells}/muts_100/drop_0.2/zyg_0/run_{run}/prior_0.0001/sciphi/force_zyg_0/sciphi_{{distance}}.txt', numCells = NUMCELLS, run = range(0, NUMRUNS)),
-        expand(OUTDIR + 'cells_{numCells}/muts_100/drop_0.2/zyg_0/run_{run}/prior_0.002/monovar/monovar_distance.txt', numCells = NUMCELLS, run = range(0, NUMRUNS)),
+        expand(OUTDIR + 'cells_{numCells}/muts_100/drop_0.2/zyg_0/cpn_0/run_{run}/prior_0.0001/sciphi/force_zyg_1/sciphi_{{distance}}.txt', numCells = NUMCELLS, run = range(0, NUMRUNS)),
+        expand(OUTDIR + 'cells_{numCells}/muts_100/drop_0.2/zyg_0/cpn_0/run_{run}/prior_0.002/monovar/monovar_distance.txt', numCells = NUMCELLS, run = range(0, NUMRUNS)),
     output:
         txt = OUTDIR + '{distance}_numCells.txt',
         rec = OUTDIR + '{distance}_numCells_pre.pdf',
@@ -416,13 +413,13 @@ rule gatherBenchmarksNumCells:
         f1 = OUTDIR +  '{distance}_numCells_f1.pdf'
     shell:
         (PYTHON3 + ' ' + GATHERBENCH + ' {output.txt} {input}; ' +
-        PLOTNUMCELLS + ' {output.txt}')
+        'Rscript ' + PLOTNUMCELLS + ' {output.txt}')
 
 localrules: gatherBenchmarksPrior
 rule gatherBenchmarksPrior:
     input:
-        expand(OUTDIR + 'cells_25/muts_100/drop_0.2/zyg_0/run_{run}/prior_{prior}/sciphi/force_zyg_0/sciphi_{{distance}}.txt', prior = PRIORSSCIPHI, run = range(0, NUMRUNS)),
-        expand(OUTDIR + 'cells_25/muts_100/drop_0.2/zyg_0/run_{run}/prior_{prior}/monovar/monovar_distance.txt', prior = PRIORSMONOVAR, run = range(0, NUMRUNS)),
+        expand(OUTDIR + 'cells_25/muts_100/drop_0.2/zyg_0/cpn_0/run_{run}/prior_{prior}/sciphi/force_zyg_1/sciphi_{{distance}}.txt', prior = PRIORSSCIPHI, run = range(0, NUMRUNS)),
+        expand(OUTDIR + 'cells_25/muts_100/drop_0.2/zyg_0/cpn_0/run_{run}/prior_{prior}/monovar/monovar_distance.txt', prior = PRIORSMONOVAR, run = range(0, NUMRUNS)),
     output:
         txt = OUTDIR + '{distance}_prior.txt',
         rec = OUTDIR + '{distance}_prior_rec.pdf',
@@ -430,13 +427,13 @@ rule gatherBenchmarksPrior:
         f1 = OUTDIR +  '{distance}_prior_f1.pdf'
     shell:
         (PYTHON3 + ' ' + GATHERBENCH + ' {output.txt} {input}; ' +
-        PLOTPRIORS + ' {output.txt}')
+        'Rscript ' + PLOTPRIORS + ' {output.txt}')
 
 localrules: gatherBenchmarksDropOuts
 rule gatherBenchmarksDropOuts:
     input:
-        expand(OUTDIR + 'cells_25/muts_100/drop_{drop}/zyg_0/run_{run}/prior_0.0001/sciphi/force_zyg_0/sciphi_{{distance}}.txt', drop = DROPOUTS, run = range(0, NUMRUNS)),
-        expand(OUTDIR + 'cells_25/muts_100/drop_{drop}/zyg_0/run_{run}/prior_0.002/monovar/monovar_distance.txt', drop = DROPOUTS, run = range(0, NUMRUNS)),
+        expand(OUTDIR + 'cells_25/muts_100/drop_{drop}/zyg_0/cpn_0/run_{run}/prior_0.0001/sciphi/force_zyg_1/sciphi_{{distance}}.txt', drop = DROPOUTS, run = range(0, NUMRUNS)),
+        expand(OUTDIR + 'cells_25/muts_100/drop_{drop}/zyg_0/cpn_0/run_{run}/prior_0.002/monovar/monovar_distance.txt', drop = DROPOUTS, run = range(0, NUMRUNS)),
     output: 
         txt = OUTDIR + '{distance}_drop.txt',
         rec = OUTDIR + '{distance}_drop_rec.pdf',
@@ -444,13 +441,13 @@ rule gatherBenchmarksDropOuts:
         f1 = OUTDIR +  '{distance}_drop_f1.pdf'
     shell:
         (PYTHON3 + ' ' + GATHERBENCH + ' {output.txt} {input}; ' +
-        PLOTDROPOUTS + ' {output.txt}')
+        'Rscript ' + PLOTDROPOUTS + ' {output.txt}')
 
 localrules: gatherBenchmarksZygs
 rule gatherBenchmarksZygs:
     input:
-        expand(OUTDIR + 'cells_25/muts_100/drop_0.2/zyg_{zyg}/run_{run}/prior_0.0001/sciphi/force_zyg_1/sciphi_{{distance}}.txt', zyg = ZYGS, run = range(0, NUMRUNS)),
-        expand(OUTDIR + 'cells_25/muts_100/drop_0.2/zyg_{zyg}/run_{run}/prior_0.002/monovar/monovar_distance.txt', zyg = ZYGS, run = range(0, NUMRUNS)),
+        expand(OUTDIR + 'cells_25/muts_100/drop_0.2/zyg_{zyg}/cpn_0/run_{run}/prior_0.0001/sciphi/force_zyg_1/sciphi_{{distance}}.txt', zyg = ZYGS, run = range(0, NUMRUNS)),
+        expand(OUTDIR + 'cells_25/muts_100/drop_0.2/zyg_{zyg}/cpn_0/run_{run}/prior_0.002/monovar/monovar_distance.txt', zyg = ZYGS, run = range(0, NUMRUNS)),
     output:
         txt = OUTDIR + '{distance}_zyg.txt',
         rec = OUTDIR + '{distance}_zyg_rec.pdf',
@@ -458,4 +455,18 @@ rule gatherBenchmarksZygs:
         f1 = OUTDIR +  '{distance}_zyg_f1.pdf'
     shell:
         (PYTHON3 + ' ' + GATHERBENCH + ' {output.txt} {input}; ' +
-        PLOTCLBMS + ' {output.txt}')
+        'Rscript ' + PLOTCLBMS + ' {output.txt}')
+
+localrules: gatherBenchmarksCpns
+rule gatherBenchmarksCpns:
+    input:
+        expand(OUTDIR + 'cells_25/muts_100/drop_0.2/zyg_0/cpn_{cpn}/run_{run}/prior_0.0001/sciphi/force_zyg_1/sciphi_{{distance}}.txt', cpn = CPNS, run = range(0, NUMRUNS)),
+        expand(OUTDIR + 'cells_25/muts_100/drop_0.2/zyg_0/cpn_{cpn}/run_{run}/prior_0.002/monovar/monovar_distance.txt', cpn = CPNS, run = range(0, NUMRUNS)),
+    output:
+        txt = OUTDIR + '{distance}_cpn.txt',
+        rec = OUTDIR + '{distance}_cpn_rec.pdf',
+        pre = OUTDIR + '{distance}_cpn_pre.pdf',
+        f1 = OUTDIR +  '{distance}_cpn_f1.pdf'
+    shell:
+        (PYTHON3 + ' ' + GATHERBENCH + ' {output.txt} {input}; ' +
+        'Rscript ' + PLOTCPNS + ' {output.txt}')

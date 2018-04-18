@@ -153,6 +153,12 @@ def writeMutType(outFile, refNuc, mutNuc, alleleAffacted, cov):
         counts[charToIndex(refNuc)] += 1
     elif alleleAffacted == '3' or alleleAffacted == '5': # 1 chrom mut
         counts[charToIndex(mutNuc)] += 1
+    elif int(alleleAffacted) >= 6: # copy number
+        counts[charToIndex(refNuc)] += 1
+        counts[charToIndex(mutNuc)] += 1 + 1 * (int(alleleAffacted) - 5)
+    elif int(alleleAffacted) < 0: # copy number
+        counts[charToIndex(refNuc)] += 1 + 1 * (-1 * int(alleleAffacted) - 5)
+        counts[charToIndex(mutNuc)] += 1
     else:
         sys.exit(1)
 
