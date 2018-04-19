@@ -156,7 +156,7 @@ addLogProbWeight(double x, double y, double nu) // = (1.0 - nu) * x + nu * y
 
 template <typename TTreeType>
 double
-computeWildLogScore(Config<TTreeType> & config, double altCount, double coverage)
+computeWildLogScore(Config<TTreeType> const & config, double altCount, double coverage)
 {
     return logBetaBinPDF(altCount, 
         coverage, 
@@ -166,7 +166,7 @@ computeWildLogScore(Config<TTreeType> & config, double altCount, double coverage
 
 template <typename TTreeType>
 double
-computeWildLogScoreOP(Config<TTreeType> & config, double altCount, double coverage)
+computeWildLogScoreOP(Config<TTreeType> const & config, double altCount, double coverage)
 {
     return logBetaBinPDFOP(altCount, 
         coverage, 
@@ -176,7 +176,7 @@ computeWildLogScoreOP(Config<TTreeType> & config, double altCount, double covera
 
 template <typename TTreeType>
 double
-computeRawMutLogScore(Config<TTreeType> & config, double altCount, double coverage)
+computeRawMutLogScore(Config<TTreeType> const & config, double altCount, double coverage)
 {
     return logBetaBinPDF(altCount, 
                 coverage, 

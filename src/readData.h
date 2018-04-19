@@ -511,6 +511,98 @@ passNormalFilter(std::array<unsigned, 5> const & normalCounts, Config<TTreeType>
 }
 
 template <typename TTreeType>
+bool
+passNormalCellFilter(std::vector<std::array<unsigned, 5>> const & normalCellCounts, Config<TTreeType> const & config)
+{
+    unsigned maxCov = 0;
+    unsigned numMutated = 0;
+    for (size_t i = 0; i < normalCellCounts.size(); ++i)
+    {
+        if (normalCellCounts[i][4] > maxCov)
+        {
+            maxCov = normalCellCounts[i][4];
+        }
+        for (size_t j = 0; j < 4; ++j)
+        {
+            if (computeRawMutLogScore(config, normalCellCounts[i][j], normalCellCounts[i][4]) < computeRawMutLogScore(config, normalCellCounts[i][j], normalCellCounts[i][4]))
+            {
+                ++numMutated;
+            }
+        }
+    }
+    
+    if (maxCov >= config.minCovNormalCell && numMutated <= config.maxNumberNormalCellMutated)
+    {
+        return false;
+    }
+    return true;
+}
+
+template <typename TTreeType>
+bool computeProbCellsAreMutated(
+    Config<TTreeType> const & config,
+    std::vector<long double> & logProbs,
+    std::vector<long double> & tempLogProbs,
+    std::vector<double> & logProbTempValues,
+    std::vector<std::array<unsigned, 5>> & filteredCounts,
+    std::vector<double> & cellsNotMutated,
+    std::vector<double> & cellsMutated,
+    unsigned currentChar)
+{
+
+    unsigned numCells = config.getNumSamples();
+    double logNumCells = log(numCells);
+
+    tempLogProbs[0] = 0.0;
+    for (size_t i = 1; i < filteredCounts.size() + 1; ++i)
+    {
+        cellsNotMutated[i-1] = computeWildLogScore(config, filteredCounts[i - 1][currentChar], filteredCounts[i - 1][4]);
+        cellsMutated[i-1] = computeRawMutLogScore(config, filteredCounts[i - 1][currentChar], filteredCounts[i - 1][4]);
+        tempLogProbs[i] = tempLogProbs[i - 1] + cellsNotMutated[i - 1];
+
+    }
+    swap(logProbs, tempLogProbs);
+    double logH0 = logProbs.back() + log(1.0 - config.priorMutationRate); 
+    logProbTempValues[0] = logH0;
+
+    // compute the probabilitues of observing 1, 2, 3, ... mutations
+    double logH1Max = -DBL_MAX; // the current best alternative score
+    long double logNOverK = 0;  // helper to efficiently compute nChooseK
+    size_t numMut = 1;          // number of mutations currently computet
+    
+    for (; numMut <= numCells; ++numMut)
+    {
+        double logProbAllPrevCellsMutated = logProbs[numMut - 1];
+        double currentCellMutated = cellsMutated[numMut - 1];
+        tempLogProbs[numMut] = logProbAllPrevCellsMutated + currentCellMutated;
+        for (size_t i = numMut + 1; i < filteredCounts.size() + 1; ++i)
+        {
+            double previousCellNotMutated = logProbs[i - 1];
+            currentCellMutated = cellsMutated[i - 1]; 
+            double previousCellMutated = tempLogProbs[i -1];
+            double currentCellNotMutated = cellsNotMutated[i - 1]; 
+            tempLogProbs[i] = addLogProb(previousCellNotMutated + currentCellMutated,  
+                        previousCellMutated + currentCellNotMutated);
+
+        }
+        swap(logProbs, tempLogProbs);
+        logNOverK = logNChooseK(numCells, numMut, logNOverK);
+        double logH1Temp = logProbs.back() + log(config.priorMutationRate) - logNOverK;
+        logH1Temp = updateLogH1Temp(logH1Temp, numCells, numMut);
+
+        // check whether the alternative hyothesis can win
+        bool h0Wins = mustH0Win(logH1Max, logH1Temp, logNumCells, logH0);
+        logProbTempValues[numMut] = logH1Temp;
+        if (h0Wins)
+        { 
+            return true;
+        }
+    }
+    return false;
+}
+
+
+template <typename TTreeType>
 bool readMpileupFile(Config<TTreeType> & config)
 {
     typedef std::tuple<unsigned, unsigned>                                  TCountType;
@@ -546,6 +638,7 @@ bool readMpileupFile(Config<TTreeType> & config)
 
     std::array<unsigned, 5> normalBulkCounts;
     std::vector<std::array<unsigned, 5>> counts(numCells, {{0,0,0,0,0}});           // vector to hold the nucleotide information {a,c,g,t,coverage}
+    std::vector<std::array<unsigned, 5>> countsNormal(normalCellPos.size(), {{0,0,0,0,0}});           // vector to hold the nucleotide information {a,c,g,t,coverage}
     std::vector<std::array<unsigned, 5>> filteredCounts(numCells, {{0,0,0,0,0}});   // vector to hold the filtered nucleotide information {a,c,g,t,coverage}
     std::vector<TCountType> tempCounts(numCells);                                   // helper vector to store nucleotide information
     std::vector<long double> logProbs(numCells + 1, 0);                             // probabilities of observing 0, 1, 2, 3, 4 ... mutations
@@ -591,6 +684,12 @@ bool readMpileupFile(Config<TTreeType> & config)
                 }
             }
 
+            extractSeqInformation(countsNormal, splitVec, normalCellPos);
+            if (!passNormalCellFilter(countsNormal, config))
+            {
+                continue;
+            }
+
             extractSeqInformation(counts, splitVec, tumorCellPos);
 
             filteredCounts = counts;
@@ -610,53 +709,19 @@ bool readMpileupFile(Config<TTreeType> & config)
                 double logH1 = -DBL_MAX;
                 if(!h0Wins)
                 {
-                    // compute the probability of no mutation
-                    tempLogProbs[0] = 0.0;
-                    for (size_t i = 1; i < filteredCounts.size() + 1; ++i)
-                    {
-                        cellsNotMutated[i-1] = computeWildLogScore(config, filteredCounts[i - 1][j], filteredCounts[i - 1][4]);
-                        cellsMutated[i-1] = computeRawMutLogScore(config, filteredCounts[i - 1][j], filteredCounts[i - 1][4]);
-                        tempLogProbs[i] = tempLogProbs[i - 1] + cellsNotMutated[i - 1];
-
-                    }
-                    swap(logProbs, tempLogProbs);
-                    logH0 = logProbs.back() + log(1.0 - config.priorMutationRate); 
-                    logProbTempValues[0] = logH0;
-
-                    // compute the probabilitues of observing 1, 2, 3, ... mutations
-                    double logH1Max = -DBL_MAX; // the current best alternative score
-                    long double logNOverK = 0;  // helper to efficiently compute nChooseK
-                    size_t numMut = 1;          // number of mutations currently computet
-                    
-                    for (; numMut <= numCells; ++numMut)
-                    {
-                        double logProbAllPrevCellsMutated = logProbs[numMut - 1];
-                        double currentCellMutated = cellsMutated[numMut - 1];
-                        tempLogProbs[numMut] = logProbAllPrevCellsMutated + currentCellMutated;
-                        for (size_t i = numMut + 1; i < filteredCounts.size() + 1; ++i)
-                        {
-                            double previousCellNotMutated = logProbs[i - 1];
-                            currentCellMutated = cellsMutated[i - 1]; 
-                            double previousCellMutated = tempLogProbs[i -1];
-                            double currentCellNotMutated = cellsNotMutated[i - 1]; 
-                            tempLogProbs[i] = addLogProb(previousCellNotMutated + currentCellMutated,  
-                                        previousCellMutated + currentCellNotMutated);
-
-                        }
-                        swap(logProbs, tempLogProbs);
-                        logNOverK = logNChooseK(numCells, numMut, logNOverK);
-                        double logH1Temp = logProbs.back() + log(config.priorMutationRate) - logNOverK;
-                        logH1Temp = updateLogH1Temp(logH1Temp, numCells, numMut);
-
-                        // check whether the alternative hyothesis can win
-                        h0Wins = mustH0Win(logH1Max, logH1Temp, logNumCells, logH0);
-                        logProbTempValues[numMut] = logH1Temp;
-                        if (h0Wins)
-                        { 
-                            break;
-                        }
-                    }
+                    h0Wins = computeProbCellsAreMutated(config, 
+                            logProbs, 
+                            tempLogProbs, 
+                            logProbTempValues, 
+                            filteredCounts,
+                            cellsNotMutated,
+                            cellsMutated,
+                            j);
                 }
+
+                for (unsigned xx = 0; xx < logProbTempValues.size(); ++xx)
+                    std::cout << logProbTempValues[xx] << "\t";
+                std::cout << std::endl;
 
                 if (h0Wins)
                 {

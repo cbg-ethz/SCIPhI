@@ -162,6 +162,7 @@ class Config{
 	TAttachmentScores const & getTmpAttachmentScore() const;
 	
     double getParam(ParamType param);
+    double getParam(ParamType param) const;
 	void setParam(ParamType param, double newParam);
 
     double getTmpParam(ParamType param);
@@ -258,7 +259,9 @@ class Config{
     std::array<unsigned, 2>                     numMutPlacements;
     bool                                        estimateSeqErrorRate;
     std::array<double, 2>                       clamPrior;
-    double                                      meanFilter;                       
+    double                                      meanFilter;      
+    unsigned                                    minCovNormalCell;
+    unsigned                                    maxNumberNormalCellMutated;
     //double mu;
 
 
@@ -303,7 +306,10 @@ class Config{
         numMutPlacements({{0,0}}),
         estimateSeqErrorRate(true),
         clamPrior({{200,10000}}),
-        meanFilter(0.25)
+        meanFilter(0.25),
+        minCovNormalCell(5),
+        maxNumberNormalCellMutated(0)
+        
     {};
 };
 
@@ -427,6 +433,14 @@ Config<TTreeType>::getTmpAttachmentScore() const {return this->_tmpAttachmentSco
 template<typename TTreeType>
 double 
 Config<TTreeType>::getParam(Config<TTreeType>::ParamType param)
+{
+    if (param == this->mutationMean)
+        return 0.5 - (2.0/3.0 * this->getParam(this->wildMean));
+    return std::get<0>(this->params[param]);
+}
+template<typename TTreeType>
+double 
+Config<TTreeType>::getParam(Config<TTreeType>::ParamType param) const
 {
     if (param == this->mutationMean)
         return 0.5 - (2.0/3.0 * this->getParam(this->wildMean));
