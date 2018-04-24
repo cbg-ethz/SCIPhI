@@ -262,6 +262,7 @@ class Config{
     double                                      meanFilter;      
     unsigned                                    minCovNormalCell;
     unsigned                                    maxNumberNormalCellMutated;
+    bool                                        useNormalCellInTree;
     //double mu;
 
 
@@ -308,8 +309,8 @@ class Config{
         clamPrior({{200,10000}}),
         meanFilter(0.25),
         minCovNormalCell(5),
-        maxNumberNormalCellMutated(0)
-        
+        maxNumberNormalCellMutated(0),
+        useNormalCellInTree(false)
     {};
 };
 
