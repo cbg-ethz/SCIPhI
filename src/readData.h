@@ -340,7 +340,7 @@ readCellInformation(std::vector<unsigned> & tumorCellPos, std::vector<unsigned> 
             {
                 normalCellPos.push_back(counter);
             }
-            if (splitVec.back() == "CT")
+            if (splitVec.back() == "CT" || (config.useNormalCellInTree && splitVec.back() == "CN"))
             {
                 tumorCellPos.push_back(counter);
                 boost::split(splitVecEntry, splitVec[0], boost::is_any_of("/"));
@@ -524,7 +524,7 @@ passNormalCellFilter(std::vector<std::array<unsigned, 5>> const & normalCellCoun
         }
         for (size_t j = 0; j < 4; ++j)
         {
-            if (computeRawMutLogScore(config, normalCellCounts[i][j], normalCellCounts[i][4]) < computeRawMutLogScore(config, normalCellCounts[i][j], normalCellCounts[i][4]))
+            if (computeWildLogScore(config, normalCellCounts[i][j], normalCellCounts[i][4]) < computeRawMutLogScore(config, normalCellCounts[i][j], normalCellCounts[i][4]))
             {
                 ++numMutated;
             }
@@ -533,9 +533,9 @@ passNormalCellFilter(std::vector<std::array<unsigned, 5>> const & normalCellCoun
     
     if (maxCov >= config.minCovNormalCell && numMutated <= config.maxNumberNormalCellMutated)
     {
-        return false;
+        return true;
     }
-    return true;
+    return false;
 }
 
 template <typename TTreeType>
@@ -718,10 +718,6 @@ bool readMpileupFile(Config<TTreeType> & config)
                             cellsMutated,
                             j);
                 }
-
-                for (unsigned xx = 0; xx < logProbTempValues.size(); ++xx)
-                    std::cout << logProbTempValues[xx] << "\t";
-                std::cout << std::endl;
 
                 if (h0Wins)
                 {
