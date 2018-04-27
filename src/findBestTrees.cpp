@@ -1,4 +1,4 @@
-false/**
+/**
  * SCIPhI: Single-cell mutation identification via phylogenetic inference
  * <p>
  * Copyright (C) 2018 ETH Zurich, Jochen Singer

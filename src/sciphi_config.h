@@ -262,7 +262,7 @@ class Config{
     double                                      meanFilter;      
     unsigned                                    minCovNormalCell;
     unsigned                                    maxNumberNormalCellMutated;
-    bool                                        useNormalCellInTree;
+    bool                                        useNormalCellsInTree;
     //double mu;
 
 
@@ -310,7 +310,7 @@ class Config{
         meanFilter(0.25),
         minCovNormalCell(5),
         maxNumberNormalCellMutated(0),
-        useNormalCellInTree(false)
+        useNormalCellsInTree(false)
     {};
 };
 
