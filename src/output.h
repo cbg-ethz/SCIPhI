@@ -81,7 +81,7 @@ writeVCFHeader(Config<SampleTree> const & config,
                std::ofstream & outFile)
 {
     outFile << "##fileformat=VCFv4.1\n";
-    
+   
     // get current date
     auto t = std::time(nullptr);
     auto tm = *std::localtime(&t);
@@ -112,6 +112,7 @@ writeVCFHeader(Config<SampleTree> const & config,
         }
     }
     outFile << "\n";
+    outFile.close();
 }
 
 
@@ -226,6 +227,7 @@ writeVCFEntry(std::ofstream	& outFile,
         writeVCFMultiEntry(outFile, config, entries);
 }
 
+
 inline
 void 
 writeVCF(Config<SampleTree> const & config,
@@ -258,7 +260,93 @@ writeVCF(Config<SampleTree> const & config,
     {
         writeVCFEntry(outFile, config, it->second);
     }
+}
 
+void writeTree(Config<SampleTree> const & config)
+{
+    std::cout << config.saveName + "/tree.gv" << std::endl;
+    std::ofstream ofs(config.saveName + "/tree.gv");
+    write_graphviz(ofs, config.getTree(), my_label_writer_complete(config.getTree()));
+
+}
+
+void writeNucInfo(Config<SampleTree> const & config)
+{
+    string makeDir = "mkdir -p " + config.saveName;
+    std::system(makeDir.c_str());
+    std::ofstream outFile;
+    outFile.open(config.saveName + "/nuc.tsv");
+    
+    outFile << "=numSamples=" << "\n";
+    outFile << config.getNumSamples() << "\n";
+    
+    outFile << "=params=" << "\n";
+    outFile << config.getParam(Config<SampleTree>::wildMean) << "\t"<< config.getSDParam(Config<SampleTree>::wildMean) << "\t" << config.getSDCountParam(Config<SampleTree>::wildMean) << "\t" << config.getSDTrialsParam(Config<SampleTree>::wildMean) << "\n";
+    outFile << config.getParam(Config<SampleTree>::wildOverDis) << "\t" << config.getSDParam(Config<SampleTree>::wildOverDis) << "\t" << config.getSDCountParam(Config<SampleTree>::wildOverDis) << "\t" << config.getSDTrialsParam(Config<SampleTree>::wildOverDis) << "\n";
+    outFile << config.getParam(Config<SampleTree>::mutationOverDis) << "\t"<< config.getSDParam(Config<SampleTree>::mutationOverDis) << "\t" << config.getSDCountParam(Config<SampleTree>::mutationOverDis) << "\t" << config.getSDTrialsParam(Config<SampleTree>::mutationOverDis) << "\n";
+    outFile << config.getParam(Config<SampleTree>::mu) << "\t"<< config.getSDParam(Config<SampleTree>::mu) << "\t" << config.getSDCountParam(Config<SampleTree>::mu) << "\t" << config.getSDTrialsParam(Config<SampleTree>::mu) << "\n";
+    outFile << config.getParam(Config<SampleTree>::nu) << "\t"<< config.getSDParam(Config<SampleTree>::nu) << "\t" << config.getSDCountParam(Config<SampleTree>::nu) << "\t" << config.getSDTrialsParam(Config<SampleTree>::nu) << "\n";
+
+    std::cout << config.indexToPosition.size() << " " << config.getData().size() << std::endl;
+
+    outFile << "=mutations=" << "\n";
+    for (unsigned i = 0; i < config.indexToPosition.size(); ++i)
+    {
+        // chrom
+        outFile << std::get<0>(config.indexToPosition[i]) << "\t";
+        // pos
+        outFile << std::get<1>(config.indexToPosition[i]) << "\t";
+        // ref
+        outFile << std::get<2>(config.indexToPosition[i]) << "\t";
+        // alt
+        outFile << std::get<3>(config.indexToPosition[i]);
+
+        for (unsigned j = 0; j < config.getData().size(); ++j)
+        {
+            outFile << "\t" << std::get<0>(config.getData()[j][i]) << "\t" << std::get<1>(config.getData()[j][i]);
+        }
+        outFile << "\n";
+    }
+
+    outFile << "=background=" << "\n";
+    if (config.noiseCounts.cov.size() > 0)
+    {
+        outFile << config.noiseCounts.cov[0].first << "\t" << config.noiseCounts.cov[0].second;
+        for (unsigned i = 1; i < config.noiseCounts.cov.size(); ++i)
+        {
+            outFile << "\t" << config.noiseCounts.cov[i].first << "\t" << config.noiseCounts.cov[i].second;
+        }
+        outFile << "\n";
+    }
+
+    if (config.noiseCounts.sup.size() > 0)
+    {
+        outFile << config.noiseCounts.sup[0].first << "\t" << config.noiseCounts.sup[0].second;
+        for (unsigned i = 1; i < config.noiseCounts.sup.size(); ++i)
+        {
+            outFile << "\t" << config.noiseCounts.sup[i].first << "\t" << config.noiseCounts.sup[i].second;
+        }
+        outFile << "\n";
+    }
+
+    if (config.noiseCounts.covMinusSup.size() > 0)
+    {
+        outFile << config.noiseCounts.covMinusSup[0].first << "\t" << config.noiseCounts.covMinusSup[0].second;
+        for (unsigned i = 1; i < config.noiseCounts.covMinusSup.size(); ++i)
+        {
+            outFile << "\t" << config.noiseCounts.covMinusSup[i].first << "\t" << config.noiseCounts.covMinusSup[i].second;
+        }
+        outFile << "\n";
+    }
+}
+
+void writeIndex(Config<SampleTree> const & config)
+{
+    if (config.saveName != "")
+    {
+        writeTree(config);
+        writeNucInfo(config);
+    }
 }
 
 

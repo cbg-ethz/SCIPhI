@@ -360,8 +360,8 @@ runMCMC(std::vector<typename Config<TTreeType>::TGraph> & bestTrees,
 
 	for(unsigned r=0; r<config.reps; r++){   // repeat the MCMC, start over with random tree each time, only best score and list of best trees is kept between repetitions
         config.updateContainers(0);
-
-        createInitialTree(config);
+        computeNoiseScore(config);
+        
         bestTrees.resize(1);
         bestTrees[0] = config.getTree();
         bestParams = config.params;

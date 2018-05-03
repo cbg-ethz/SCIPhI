@@ -169,12 +169,15 @@ class Config{
 	void setTmpParam(ParamType param, double newParam);
     
     double getSDParam(ParamType param);
+    double getSDParam(ParamType param) const; 
 	void setSDParam(ParamType param, double newParam);
 
     unsigned getSDCountParam(ParamType param);
+    unsigned getSDCountParam(ParamType param) const;
 	void setSDCountParam(ParamType param, unsigned newParam);
     
     unsigned getSDTrialsParam(ParamType param);
+    unsigned getSDTrialsParam(ParamType param) const;
 	void setSDTrialsParam(ParamType param, unsigned newParam);
 
     unsigned getMoveTyp();
@@ -240,6 +243,8 @@ class Config{
     std::string                                 exclusionFileName;
     std::string                                 mutationExclusionFileName;
     std::string                                 inFileName;
+    std::string                                 loadName;
+    std::string                                 saveName;
     std::vector<std::string>                    cellNames;
     std::vector<std::tuple<std::string, unsigned, char, char>> indexToPosition;
     std::vector<std::vector<TAttachmentScores::TAttachmentScore>> mutInSampleCounter;
@@ -465,12 +470,19 @@ double
 Config<TTreeType>::getSDParam(Config<TTreeType>::ParamType param){return std::get<0>(this->learningParams[param]);}
 
 template<typename TTreeType>
+double 
+Config<TTreeType>::getSDParam(Config<TTreeType>::ParamType param) const {return std::get<0>(this->learningParams[param]);}
+
+template<typename TTreeType>
 void 
 Config<TTreeType>::setSDParam(Config<TTreeType>::ParamType param, double newParam){std::get<0>(this->learningParams[param]) = newParam;}
 
 template<typename TTreeType>
 unsigned 
 Config<TTreeType>::getSDCountParam(Config<TTreeType>::ParamType param){return std::get<1>(this->learningParams[param]);}
+template<typename TTreeType>
+unsigned 
+Config<TTreeType>::getSDCountParam(Config<TTreeType>::ParamType param) const {return std::get<1>(this->learningParams[param]);}
 
 template<typename TTreeType>
 void 
@@ -479,6 +491,10 @@ Config<TTreeType>::setSDCountParam(Config<TTreeType>::ParamType param, unsigned 
 template<typename TTreeType>
 unsigned 
 Config<TTreeType>::getSDTrialsParam(Config<TTreeType>::ParamType param){return std::get<2>(this->learningParams[param]);}
+
+template<typename TTreeType>
+unsigned 
+Config<TTreeType>::getSDTrialsParam(Config<TTreeType>::ParamType param) const {return std::get<2>(this->learningParams[param]);}
 
 template<typename TTreeType>
 void 
@@ -546,8 +562,6 @@ template <typename TTreeType>
 void 
 Config<TTreeType>::initMutInSampleCounter()
 {
-    std::cout << this->getNumSamples() << " " << this->getCompleteData()[0].size() << std::endl;
-    
     this->mutInSampleCounter.resize(this->getNumSamples());
     for (size_t i = 0; i < this->mutInSampleCounter.size(); ++i)
     {
@@ -565,9 +579,10 @@ bool
 Config<TTreeType>::updateContainers(unsigned currentLoop)
 {
     if ((currentLoop < this->loops && // the current iteration is still smaller than the total number of iterations
-        static_cast<double>(currentLoop) / static_cast<double>(this->loops) > std::get<0>(this->dataUsageRate))) // ||
+        static_cast<double>(currentLoop) / static_cast<double>(this->loops) >= std::get<0>(this->dataUsageRate))) // ||
         //currentLoop == this->loops + this->sampleLoops - 1)
-    {   unsigned newDataSize = -1;
+    {   
+        unsigned newDataSize = -1;
         if (currentLoop == this->loops + this-> sampleLoops - 1)
         {
             newDataSize = this->getCompleteData()[0].size();
@@ -765,11 +780,10 @@ class my_label_writer {
 };
 
 // this prints the graph as it is currently used
-class my_label_writer_debug {
+class my_label_writer_complete {
     public:
 
-    my_label_writer_debug(boost::adjacency_list<boost::vecS,boost::vecS, boost::bidirectionalS, Vertex<SampleTree>> const & sampleTree_,
-            std::vector<std::tuple<std::string, unsigned, char, char>> const & indexToPosition_) : 
+    my_label_writer_complete(boost::adjacency_list<boost::vecS,boost::vecS, boost::bidirectionalS, Vertex<SampleTree>> const & sampleTree_) :
         sampleTree(sampleTree_)
     {}
 
