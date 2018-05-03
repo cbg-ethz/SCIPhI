@@ -79,6 +79,8 @@ int readParameters(Config<TTreeType> & config, int argc, char* argv[]){
 	boost::program_options::options_description parseConfig("Configuration");
 	parseConfig.add_options()
 		(",i", boost::program_options::value<decltype(config.refFileName)>(&config.refFileName), "Reference file.")
+		("il", boost::program_options::value<decltype(config.loadName)>(&config.loadName), "Directory from which to read intermediate results.")
+		("ol", boost::program_options::value<decltype(config.saveName)>(&config.saveName), "Directory to store intermediate results.")
 		("ex", boost::program_options::value<decltype(config.exclusionFileName)>(&config.exclusionFileName), "Filename of exclusion list (VCF format).")
 		("me", boost::program_options::value<decltype(config.mutationExclusionFileName)>(&config.mutationExclusionFileName), "Filename of mutations to exclude during the sequencing error rate estimation (VCF format).")
 		("in", boost::program_options::value<decltype(config.bamFileNames)>(&config.bamFileNames), "Name of the BAM files used to create the mpileup.")
@@ -175,15 +177,33 @@ int main(int argc, char* argv[])
     typedef Config<SampleTree> TConfig;
 	TConfig config{};
 
+    //readNucInfo(config);
+    //readGraph(config);
+    //return 0;
+
     // read the command line arguments
     std::cout << "Reading the config file: ... " << std::flush;
 	readParameters(config, argc, argv);
     std::cout << "done!" << std::endl;
 
     // extract the mutation data from the files
-    std::cout << "Reading the mpileup file: " << std::flush;
-    getData(config);
-    std::cout << "done!" << std::endl;
+    if (config.loadName == "" )
+    {
+        std::cout << "Reading the mpileup file: " << std::flush;
+        getData(config);
+        createInitialTree(config);
+        std::cout << "done!" << std::endl;
+    }
+    else
+    {
+        std::cout << "Reading the stored results file: " << std::flush;
+        readCellNames(config);
+        readGraph(config);
+        readNucInfo(config);
+        writeIndex(config);
+        std::cout << "done!" << std::endl;
+
+    }
 
     // After the data is read the log scores need to be computed.
 	computeLogScoresOP(config);
@@ -219,6 +239,8 @@ int main(int argc, char* argv[])
     //write_graphviz(ofs, newTree, my_label_writer(newTree, config.indexToPosition, config.cellNames));
 
     config.getTree() = optimalTrees[0];
+    writeIndex(config);
+
     config.params = optimalParams;
     computeLogScoresOP(config);
     TGraph newTreeBest = simplifyTree(config);

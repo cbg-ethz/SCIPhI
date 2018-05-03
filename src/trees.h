@@ -39,6 +39,7 @@
 
 #include "sciphi_config.h"
 #include "scoreTree.h"
+#include "output.h"
 
 using namespace std;
 
@@ -56,8 +57,8 @@ unsigned getSibling(typename Config<SampleTree>::TGraph const & g, unsigned vert
 //TODO write specialization for sampletree
 // This function draws a new sibling node for a given vertex
 template <typename TTreeType>
-unsigned getNewSibling(Config<TTreeType> const & config, unsigned vertex){
-
+unsigned getNewSibling(Config<TTreeType> const & config, unsigned vertex)
+{
     boost::dynamic_bitset<> bitSet(num_vertices(config.getTree()), 0); 
     unsigned numElemInSubtree = 0;
 
@@ -72,12 +73,16 @@ unsigned getNewSibling(Config<TTreeType> const & config, unsigned vertex){
 	std::vector<unsigned> ancestors;
     unsigned i = 0;
 	for(unsigned counter = 0; ; ++i)
+    {
 		if(bitSet[i]==false)
         {
             if (counter == nonDescendantsRank)
+            {
                 break;
+            }
 			++counter;
         }
+    }
 
 	return i;
 }
