@@ -25,6 +25,9 @@
 
 #include <boost/algorithm/string.hpp>
 #include <boost/math/distributions/chi_squared.hpp>
+#include <boost/graph/graphviz.hpp>
+#include <boost/regex.hpp>
+#include <boost/algorithm/string/regex.hpp>
 
 #include <cctype>
 #include <set>
@@ -301,8 +304,35 @@ readExclusionList(std::set<std::tuple<std::string, std::string>> & exMap,
 
 template <typename TTreeType>
 void
+readCellNames(Config<TTreeType> & config)
+{
+    std::ifstream inputStream(config.bamFileNames);
+    std::vector<std::string> splitVec;
+    std::vector<std::string> splitVecEntry;
+
+    unsigned counter = 0;
+    std::string currLine;
+
+    while(getline(inputStream, currLine))
+    {
+        if (currLine != "")
+        {
+            boost::split(splitVec, currLine, boost::is_any_of("\t"));
+            if (splitVec.back() == "CT" || (config.useNormalCellsInTree && splitVec.back() == "CN"))
+            {
+                boost::split(splitVecEntry, splitVec[0], boost::is_any_of("/"));
+                config.cellNames.push_back(splitVecEntry.back());
+            }
+        }
+    }
+}
+
+template <typename TTreeType>
+void
 readCellInformation(std::vector<unsigned> & tumorCellPos, std::vector<unsigned> & normalCellPos, unsigned & tumorBulkPos, unsigned & normalBulkPos, Config<TTreeType> & config)
 {
+
+    readCellNames(config);
 
     tumorCellPos.resize(0);
     normalCellPos.resize(0);
@@ -343,8 +373,6 @@ readCellInformation(std::vector<unsigned> & tumorCellPos, std::vector<unsigned> 
             if (splitVec.back() == "CT" || (config.useNormalCellsInTree && splitVec.back() == "CN"))
             {
                 tumorCellPos.push_back(counter);
-                boost::split(splitVecEntry, splitVec[0], boost::is_any_of("/"));
-                config.cellNames.push_back(splitVecEntry.back());
             }
             ++counter;
         }
@@ -697,11 +725,14 @@ bool readMpileupFile(Config<TTreeType> & config)
                     continue;
                 }
             }
-
-            extractSeqInformation(countsNormal, splitVec, normalCellPos);
-            if (!passNormalCellFilter(countsNormal, 0, config))
+            
+            if(normalCellPos.size() > 0)
             {
-                continue;
+                extractSeqInformation(countsNormal, splitVec, normalCellPos);
+                if (!passNormalCellFilter(countsNormal, 0, config))
+                {
+                    continue;
+                }
             }
 
             extractSeqInformation(counts, splitVec, tumorCellPos);
@@ -718,25 +749,28 @@ bool readMpileupFile(Config<TTreeType> & config)
                     continue;
                 }
                 bool h0Wins = !applyFilterAcrossCells(filteredCounts, config, j);
-               
-                bool h0WinsNormal = computeProbCellsAreMutated(config, 
-                        logProbsNormal, 
-                        tempLogProbsNormal, 
-                        logProbTempValuesNormal, 
-                        countsNormal,
-                        cellsNotMutatedNormal,
-                        cellsMutatedNormal,
-                        j,
-                        false);
-
-                double logH0Normal = sumValuesInLogSpace(logProbTempValuesNormal.begin(),logProbTempValuesNormal.begin() + config.maxNumberNormalCellMutated + 1);
-                double logH1Normal = sumValuesInLogSpace(logProbTempValuesNormal.begin() + config.maxNumberNormalCellMutated + 1, logProbTempValuesNormal.end());
-
-                if (logH0Normal < logH1Normal) 
+              
+                if(normalCellPos.size() > 0)
                 {
-                    positionMutated = true;
-                    h0Wins = true;
-                    continue;
+                    bool h0WinsNormal = computeProbCellsAreMutated(config, 
+                            logProbsNormal, 
+                            tempLogProbsNormal, 
+                            logProbTempValuesNormal, 
+                            countsNormal,
+                            cellsNotMutatedNormal,
+                            cellsMutatedNormal,
+                            j,
+                            false);
+
+                    double logH0Normal = sumValuesInLogSpace(logProbTempValuesNormal.begin(),logProbTempValuesNormal.begin() + config.maxNumberNormalCellMutated + 1);
+                    double logH1Normal = sumValuesInLogSpace(logProbTempValuesNormal.begin() + config.maxNumberNormalCellMutated + 1, logProbTempValuesNormal.end());
+
+                    if (logH0Normal < logH1Normal) 
+                    {
+                        positionMutated = true;
+                        h0Wins = true;
+                        continue;
+                    }
                 }
 
                 double logH0 = -DBL_MAX;
@@ -873,5 +907,135 @@ void getData(Config<TTreeType> & config)
 {
     readMpileupFile(config);
 }
+
+template <typename TTreeType>
+void readGraph(Config<TTreeType> & config)
+{
+    std::ifstream inFile;
+    std::get<1>(config.dataUsageRate) = 1.0;
+    inFile.open(config.loadName + "/tree.gv");
+
+    string line;
+    std::vector<std::string> splitVec;
+   
+    while(std::getline(inFile, line))
+    {
+        boost::algorithm::split_regex( splitVec, line, boost::regex( "->" ) ) ;
+        if(splitVec.size() > 1)
+        {
+            boost::algorithm::split_regex( splitVec, line, boost::regex( "->|[ ;]" ) ) ;
+            boost::add_edge(std::stoi(splitVec[0]), std::stoi(splitVec[1]), config.getTree());
+        }
+    }
+
+    unsigned numVertices = num_vertices(config.getTree());
+    for(unsigned i = numVertices / 2 - 1; i < numVertices - 1; ++i)
+    {
+        config.getTree()[i].sample = i - (numVertices / 2 - 1);
+    }
+}
+
+template <typename TTreeType>
+void readNucInfo(Config<TTreeType> & config)
+{
+    std::ifstream inFile;
+    std::get<1>(config.dataUsageRate) = 1.0;
+    inFile.open(config.loadName + "/nuc.tsv");
+    
+    std::string line;
+    std::vector<std::string> splitVec;
+    std::getline(inFile, line);
+    if (line == "=numSamples=")
+    {
+        std::getline(inFile, line);
+        config.setNumSamples(std::stod(line));
+    }
+    
+    std::getline(inFile, line);
+    if (line == "=params=")
+    {
+        std::getline(inFile, line);
+        boost::split(splitVec, line, boost::is_any_of("\t"));
+        config.setParam(Config<SampleTree>::wildMean, std::stod(splitVec[0]));
+        config.setSDParam(Config<SampleTree>::wildMean, std::stod(splitVec[1]));
+        config.setSDCountParam(Config<SampleTree>::wildMean, std::stoi(splitVec[2]));
+        config.setSDTrialsParam(Config<SampleTree>::wildMean, std::stoi(splitVec[3]));
+
+        std::getline(inFile, line);
+        boost::split(splitVec, line, boost::is_any_of("\t"));
+        config.setParam(Config<SampleTree>::wildOverDis, std::stod(splitVec[0]));
+        config.setSDParam(Config<SampleTree>::wildOverDis, std::stod(splitVec[1]));
+        config.setSDCountParam(Config<SampleTree>::wildOverDis, std::stoi(splitVec[2]));
+        config.setSDTrialsParam(Config<SampleTree>::wildOverDis, std::stoi(splitVec[3]));
+
+        std::getline(inFile, line);
+        boost::split(splitVec, line, boost::is_any_of("\t"));
+        config.setParam(Config<SampleTree>::mutationOverDis, std::stod(splitVec[0]));
+        config.setSDParam(Config<SampleTree>::mutationOverDis, std::stod(splitVec[1]));
+        config.setSDCountParam(Config<SampleTree>::mutationOverDis, std::stoi(splitVec[2]));
+        config.setSDTrialsParam(Config<SampleTree>::mutationOverDis, std::stoi(splitVec[3]));
+
+        std::getline(inFile, line);
+        boost::split(splitVec, line, boost::is_any_of("\t"));
+        config.setParam(Config<SampleTree>::mu, std::stod(splitVec[0]));
+        config.setSDParam(Config<SampleTree>::mu, std::stod(splitVec[1]));
+        config.setSDCountParam(Config<SampleTree>::mu, std::stoi(splitVec[2]));
+        config.setSDTrialsParam(Config<SampleTree>::mu, std::stoi(splitVec[3]));
+
+        std::getline(inFile, line);
+        boost::split(splitVec, line, boost::is_any_of("\t"));
+        config.setParam(Config<SampleTree>::nu, std::stod(splitVec[0]));
+        config.setSDParam(Config<SampleTree>::nu, std::stod(splitVec[1]));
+        config.setSDCountParam(Config<SampleTree>::nu, std::stoi(splitVec[2]));
+        config.setSDTrialsParam(Config<SampleTree>::nu, std::stoi(splitVec[3]));
+    }
+
+    std::getline(inFile, line);
+    if (line == "=mutations=")
+    {
+        config.data.resize(config.getNumSamples());
+        while(getline(inFile, line))
+        {
+            if (line == "=background=")
+            {
+                break;
+            }
+
+            boost::split(splitVec, line, boost::is_any_of("\t"));
+            config.indexToPosition.push_back({splitVec[0],std::stoul(splitVec[1]),splitVec[2][0],splitVec[3][0]});
+            for (unsigned i = 4; i < splitVec.size(); i+=2)
+            {
+                config.data[(i-4) / 2].push_back({std::stoul(splitVec[i]),std::stoul(splitVec[i+1])});
+            }
+        }
+        config.completeData = config.data;
+    }
+
+    {
+        std::getline(inFile, line);
+        boost::split(splitVec, line, boost::is_any_of("\t"));
+        for (unsigned i = 0; i < splitVec.size(); i += 2)
+        {
+            config.noiseCounts.cov.push_back({std::stoul(splitVec[i]), std::stoul(splitVec[i+1])});
+            config.noiseCounts.numPos += config.noiseCounts.cov.back().second;
+        }
+        
+        std::getline(inFile, line);
+        boost::split(splitVec, line, boost::is_any_of("\t"));
+        for (unsigned i = 0; i < splitVec.size(); i += 2)
+        {
+            config.noiseCounts.sup.push_back({std::stoul(splitVec[i]), std::stoul(splitVec[i+1])});
+        }
+
+        std::getline(inFile, line);
+        boost::split(splitVec, line, boost::is_any_of("\t"));
+        for (unsigned i = 0; i < splitVec.size(); i += 2)
+        {
+            config.noiseCounts.covMinusSup.push_back({std::stoul(splitVec[i]), std::stoul(splitVec[i+1])});
+        }
+
+    }
+}
+
 #endif
 
