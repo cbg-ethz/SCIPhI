@@ -200,7 +200,6 @@ int main(int argc, char* argv[])
         readCellNames(config);
         readGraph(config);
         readNucInfo(config);
-        writeIndex(config);
         std::cout << "done!" << std::endl;
 
     }
@@ -246,8 +245,4 @@ int main(int argc, char* argv[])
     TGraph newTreeBest = simplifyTree(config);
     std::ofstream ofs2(config.outFilePrefix + ".gv");
     write_graphviz(ofs2, newTreeBest, my_label_writer(newTreeBest, config.indexToPosition, config.cellNames));
-
-    //config.getTree() = optimalTrees[0];
-    //std::cout << "LAST BEST SCORE: " << scoreTree(config);
-
 }

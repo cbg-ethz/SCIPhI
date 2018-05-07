@@ -394,16 +394,13 @@ public:
             // if the parent node is the root then there should be no summation of the nodes
             if (source(*in_edges(parentNode, g).first, g) == num_vertices(config.getTree()) - 1)
             {
-                //std::cout << v << " " << lostScores[v] << " " << attachmentScores[parentNode].hetScore() - attachmentScores[v].hetScore() << std::endl;
                 lostScores[v] = attachmentScores[parentNode].hetScore() - attachmentScores[v].hetScore();
                 leafScore = addLogProb(leafScore, lostScores[v]);
             }
             else
             {
-                //std::cout << v << " " << parentNode << " "  << getSibling(g, v) << " " << std::exp(lostScores[v]) << " " << std::exp(attachmentScores[parentNode].hetScore() - attachmentScores[v].hetScore()) << " " << std::exp(lostScores[parentNode]) << " " << std::exp(attachmentScores[getSibling(g, v)].hetScore()) << " " << std::exp(lostScores[parentNode] + attachmentScores[getSibling(g, v)].hetScore());
                 lostScores[v] = attachmentScores[parentNode].hetScore() - attachmentScores[v].hetScore();
                 lostScores[v] = addLogProb(lostScores[v], lostScores[parentNode] + attachmentScores[getSibling(g, v)].hetScore());
-                //std::cout << " " <<  std::exp(lostScores[v]) << std::endl;
                 leafScore = addLogProb(leafScore, lostScores[v]);
             }
         }
@@ -411,7 +408,6 @@ public:
         {
             if (source(*in_edges(parentNode, g).first, g) == num_vertices(config.getTree()) - 1)
             {
-                //std::cout << v << " " << lostScores[v] << " " << attachmentScores[parentNode].hetScore() - attachmentScores[v].hetScore() << std::endl;
                 lostScores[v] = -INFINITY;
             }
             else

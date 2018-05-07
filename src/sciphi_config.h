@@ -764,11 +764,11 @@ class my_label_writer {
         }
         else
         {
-            out << "[shape=box,label=\"" << cellNames[simpleTree[v].sample] << " ";
+            out << "[shape=box,label=\"" << cellNames[simpleTree[v].sample] << "\n";
         }
         for (unsigned i = 0; i < simpleTree[v].mutations.size(); ++i)
         {
-            out << std::get<0>(this->indexToPosition[simpleTree[v].mutations[i]]) << "_" << std::to_string(std::get<1>(this->indexToPosition[simpleTree[v].mutations[i]])) <<  ":";
+            out << std::get<0>(this->indexToPosition[simpleTree[v].mutations[i]]) << "_" << std::to_string(std::get<1>(this->indexToPosition[simpleTree[v].mutations[i]])) <<  "\n";
         }
         out << "\"]";
     }
@@ -796,7 +796,7 @@ class my_label_writer_complete {
         }
         else
         {
-            out << "[shape=box,label=\"" << v;
+            out << "[shape=box,label=\"" << sampleTree[v].sample + boost::num_vertices(sampleTree) / 2 - 1;
         }
         out << "\"]";
     }

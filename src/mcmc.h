@@ -151,12 +151,10 @@ changeParameters(Config<TTreeType> & config)
 
 template <typename TTreeType>
 void 
-proposeNextConfiguration(Config<TTreeType> & config, 
-                              double& nbhcorrection)
+proposeNextConfiguration(Config<TTreeType> & config)
 {
 	config.setMoveTyp(sampleRandomMove(config.moveProbs));      // pick the move type
-	nbhcorrection = 1;           // reset the neighbourhood correction
-    
+
 	if(config.getMoveTyp() == 4) /* change one of the parameters */
     {
         changeParameters(config);
@@ -201,9 +199,18 @@ manageBestTrees(Config<SampleTree> & config,
 {
     if(currTreeLogScore > bestTreeLogScore)
     {   
+        std::cout << "The new best score is: " <<  currTreeLogScore << std::endl;
+        //save the current state to disk
+        writeIndex(config);
         bestTreeLogScore = currTreeLogScore;
         bestTrees[0] = config.getTree();
         bestParams = config.params;
+
+        //save the current best tree to disk
+        boost::adjacency_list<boost::vecS, boost::vecS, boost::bidirectionalS, Vertex<SimpleTree>> newTreeBest = simplifyTree(config);
+        std::ofstream ofs(config.outFilePrefix + ".gv");
+        write_graphviz(ofs, newTreeBest, my_label_writer(newTreeBest, config.indexToPosition, config.cellNames));
+        ofs.close();
     }
 }
 
@@ -359,6 +366,7 @@ runMCMC(std::vector<typename Config<TTreeType>::TGraph> & bestTrees,
 	double bestTreeLogScore = -DBL_MAX;          // initialize best tree score
 
 	for(unsigned r=0; r<config.reps; r++){   // repeat the MCMC, start over with random tree each time, only best score and list of best trees is kept between repetitions
+        
         config.updateContainers(0);
         computeNoiseScore(config);
         
@@ -369,7 +377,14 @@ runMCMC(std::vector<typename Config<TTreeType>::TGraph> & bestTrees,
         config.numMutPlacements[1] = config.numMutPlacements[0];
 
 		double currTreeLogScore = scoreTree(config);       // get score of random tree
-        double nbhcorrection = 1;
+        manageBestTrees(config,
+                bestTreeLogScore, 
+                currTreeLogScore,
+                bestTrees,
+                bestParams,
+                minDist);
+
+
         double propTreeLogScore;
         double random;
 
@@ -402,13 +417,14 @@ runMCMC(std::vector<typename Config<TTreeType>::TGraph> & bestTrees,
 			}
 
             // sample the next tree configuration
-            proposeNextConfiguration(config, nbhcorrection); 
+            proposeNextConfiguration(config); 
             propTreeLogScore = scoreTree(config);
+
 
             random = (double) rand() / RAND_MAX;
             
             // the proposed tree is accepted
-            if (random < nbhcorrection*exp((propTreeLogScore-currTreeLogScore)))
+            if (random < std::exp((propTreeLogScore-currTreeLogScore)))
             {
                 // update counter of parameter estimation
                 if (config.getMoveTyp() == 4)
