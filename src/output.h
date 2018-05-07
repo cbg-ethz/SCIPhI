@@ -264,10 +264,9 @@ writeVCF(Config<SampleTree> const & config,
 
 void writeTree(Config<SampleTree> const & config)
 {
-    std::cout << config.saveName + "/tree.gv" << std::endl;
     std::ofstream ofs(config.saveName + "/tree.gv");
     write_graphviz(ofs, config.getTree(), my_label_writer_complete(config.getTree()));
-
+    ofs.close();
 }
 
 void writeNucInfo(Config<SampleTree> const & config)
@@ -286,8 +285,6 @@ void writeNucInfo(Config<SampleTree> const & config)
     outFile << config.getParam(Config<SampleTree>::mutationOverDis) << "\t"<< config.getSDParam(Config<SampleTree>::mutationOverDis) << "\t" << config.getSDCountParam(Config<SampleTree>::mutationOverDis) << "\t" << config.getSDTrialsParam(Config<SampleTree>::mutationOverDis) << "\n";
     outFile << config.getParam(Config<SampleTree>::mu) << "\t"<< config.getSDParam(Config<SampleTree>::mu) << "\t" << config.getSDCountParam(Config<SampleTree>::mu) << "\t" << config.getSDTrialsParam(Config<SampleTree>::mu) << "\n";
     outFile << config.getParam(Config<SampleTree>::nu) << "\t"<< config.getSDParam(Config<SampleTree>::nu) << "\t" << config.getSDCountParam(Config<SampleTree>::nu) << "\t" << config.getSDTrialsParam(Config<SampleTree>::nu) << "\n";
-
-    std::cout << config.indexToPosition.size() << " " << config.getData().size() << std::endl;
 
     outFile << "=mutations=" << "\n";
     for (unsigned i = 0; i < config.indexToPosition.size(); ++i)
@@ -338,6 +335,7 @@ void writeNucInfo(Config<SampleTree> const & config)
         }
         outFile << "\n";
     }
+    outFile.close();
 }
 
 void writeIndex(Config<SampleTree> const & config)

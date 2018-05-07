@@ -596,9 +596,6 @@ bool computeProbCellsAreMutated(
         cellsNotMutated[i-1] = computeWildLogScore(config, filteredCounts[i - 1][currentChar], filteredCounts[i - 1][4]);
         cellsMutated[i-1] = computeRawMutLogScore(config, filteredCounts[i - 1][currentChar], filteredCounts[i - 1][4]);
         tempLogProbs[i] = tempLogProbs[i - 1] + cellsNotMutated[i - 1];
-
-        //std::cout << filteredCounts[i - 1][currentChar] << " "<< cellsNotMutated[i-1] << " " << cellsMutated[i-1] << std::endl;
-
     }
     swap(logProbs, tempLogProbs);
     double logH0 = logProbs.back() + log(1.0 - config.priorMutationRate); 
@@ -917,6 +914,7 @@ void readGraph(Config<TTreeType> & config)
 
     string line;
     std::vector<std::string> splitVec;
+    std::vector<int> sampleIds;
    
     while(std::getline(inFile, line))
     {
@@ -926,13 +924,27 @@ void readGraph(Config<TTreeType> & config)
             boost::algorithm::split_regex( splitVec, line, boost::regex( "->|[ ;]" ) ) ;
             boost::add_edge(std::stoi(splitVec[0]), std::stoi(splitVec[1]), config.getTree());
         }
+        boost::algorithm::split_regex( splitVec, line, boost::regex( "[\[\"]" ) ) ;
+        if(splitVec.size() == 4)
+        {
+            if (std::stoi(splitVec[0]) != sampleIds.size())
+            {
+                std::cout << "Problem reading the tree." << std::endl;
+                return;
+            }
+            sampleIds.push_back(std::stoi(splitVec[2]));
+        }
     }
-
+    
     unsigned numVertices = num_vertices(config.getTree());
     for(unsigned i = numVertices / 2 - 1; i < numVertices - 1; ++i)
     {
-        config.getTree()[i].sample = i - (numVertices / 2 - 1);
+        config.getTree()[i].sample = sampleIds[i] - (numVertices / 2 - 1);
     }
+    //for(unsigned i = numVertices / 2 - 1; i < numVertices - 1; ++i)
+    //{
+    //    config.getTree()[i].sample = i - (numVertices / 2 - 1);
+    //}
 }
 
 template <typename TTreeType>

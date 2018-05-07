@@ -317,7 +317,8 @@ double sumScoreTree(Config<TTreeType> & config)
 
 	double sumTreeScore = 0.0;
 
-	for(std::size_t attachment=0; attachment < config.getNumAttachments(); attachment++){
+	for(std::size_t attachment=0; attachment < config.getNumAttachments(); attachment++)
+    {
 		sumTreeScore += getSumAttachmentScore(config, attachment);
 	}
 
@@ -325,6 +326,7 @@ double sumScoreTree(Config<TTreeType> & config)
     {
 	    return sumTreeScore + noAttachmentScore + config.noiseScore + clamPriorLog(config);
     }
+
 	return sumTreeScore + noAttachmentScore + config.noiseScore;
 }
 
@@ -332,6 +334,7 @@ template <typename TTreeType>
 double scoreTree(Config<TTreeType> & config)
 {
 	double result = -DBL_MAX;
+
 	if(config.scoreType=='m')
     {
 		result = maxScoreTree(config);
@@ -340,7 +343,6 @@ double scoreTree(Config<TTreeType> & config)
     {
 		result = sumScoreTree(config);
     }
-
     
 	return result;
 }
