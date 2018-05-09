@@ -25,6 +25,18 @@ In order to install SCIPhI issue the following commands in the github directory:
 
 `make`
 
+An alternative is to use CMake (tested with version 3.11.1). Simply issue the commands:
+
+`mkdir build`
+
+`cd build`
+
+`cmake ..`
+
+`cmake --build . --config Release`
+
+Afterwards you will find SCIPhI in the build directory.
+
 ## Run SCIPhI
 
 SCIPhI expects the sequencing information to be passed in form of the well known mpileup format (http://www.htslib.org/doc/samtools.html). In order to generate such a file you need to align your fastq files to a reference and post process the result (e.g., following the instuctions here: https://software.broadinstitute.org/gatk/best-practices/workflow?id=11165). 
