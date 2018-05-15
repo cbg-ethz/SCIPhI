@@ -176,10 +176,14 @@ int main(int argc, char* argv[])
 {
     typedef Config<SampleTree> TConfig;
 	TConfig config{};
-
-    //readNucInfo(config);
-    //readGraph(config);
-    //return 0;
+	
+    /* initialize the random number generator, either with a user defined seed, or a random number */
+	if(config.fixedSeed == static_cast<unsigned>(-1)){
+		initRand();                                  // initialize random number generator
+	}
+	else{
+		srand(config.fixedSeed);
+	}
 
     // read the command line arguments
     std::cout << "Reading the config file: ... " << std::flush;
@@ -211,14 +215,6 @@ int main(int argc, char* argv[])
 	std::vector<typename TConfig::TGraph> optimalTrees;         // list of all optimal trees (as ancestor matrices)
     std::array<std::tuple<double, double>, 6> optimalParams;    // The optimal parameters
 	std::vector<std::vector<unsigned>> sampleTrees;             // list where tree samples are stored, if sampling based on posterior distribution is needed
-
-	/* initialize the random number generator, either with a user defined seed, or a random number */
-	if(config.fixedSeed == static_cast<unsigned>(-1)){
-		initRand();                                  // initialize random number generator
-	}
-	else{
-		srand(config.fixedSeed);
-	}
 
 	// Find best scoring trees by MCMC
     config.initMutInSampleCounter(); 

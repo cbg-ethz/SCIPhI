@@ -233,11 +233,6 @@ int main(int argc, char* argv[])
 
         std::string id = splitVec[0] + "_" + splitVec[1];
 
-        //std::cout << splitVec.size() << std::endl;
-        //std::cout << structuredProbs[0].size() << std::endl;
-
-        //std::cout << std::endl;
-
         auto it = mutsSet.find(id);
         if (it == mutsSet.end())
         {
@@ -246,6 +241,7 @@ int main(int argc, char* argv[])
                 std::vector<std::string> splitEntry;
                 boost::split(splitEntry, splitVec[i], boost::is_any_of("|"), boost::token_compress_on);
                 structuredProbs[cellsMap[cellNames[i]]][mutMap[id]] = std::stod(splitEntry.back());
+                //std::cout << "i: " << i << " cellNames[" << i << "] " << cellNames[i] << " id: " << id << " mutMap[" << id << "] " << mutMap[id] << " "  << structuredProbs[cellsMap[cellNames[i]]][mutMap[id]] << std::endl;
                 mutsSet.insert(id);
             }
         }
