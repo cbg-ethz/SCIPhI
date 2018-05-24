@@ -221,6 +221,7 @@ class Config{
     char                                        scoreType = 'm';
     double                                      paramsEstimateRate;
     double                                      priorMutationRate;
+    double                                      priorGermlineRate;
     unsigned                                    uniqTreshold;
     std::tuple<double, double>                  dataUsageRate; 
     unsigned                                    sampleLoops;
@@ -246,10 +247,15 @@ class Config{
     std::string                                 loadName;
     std::string                                 saveName;
     std::vector<std::string>                    cellNames;
+    std::vector<std::string>                    cellColours;
+    std::vector<unsigned>                       cellClusters;
     std::vector<std::tuple<std::string, unsigned, char, char>> indexToPosition;
     std::vector<std::vector<TAttachmentScores::TAttachmentScore>> mutInSampleCounter;
+    unsigned                                    minDist;
+    unsigned                                    maxMutPerWindow;
     unsigned                                    numUniqMuts;
     unsigned                                    numCellWithMutationMin;
+    unsigned                                    normalCellFilter;
     unsigned                                    minCoverage;
     unsigned                                    minCoverageAcrossCells;
     unsigned                                    numMinCoverageAcrossCells;
@@ -275,7 +281,7 @@ class Config{
         params{{TParamsTuple{100.0,100.0}, 
                 TParamsTuple{2, 2}, 
                 TParamsTuple{0.001, 0.001},
-                TParamsTuple{0.9, 0.9},
+                TParamsTuple{0.5, 0.5},
                 TParamsTuple{0, 0},
                 TParamsTuple{0, 0}}},
         learningParams{{TLearningParamsTuple{5.0, 0, 0}, 
@@ -293,12 +299,16 @@ class Config{
         scoreType('s'),
         paramsEstimateRate(0.2),
         priorMutationRate(0.0001),
+        priorGermlineRate(0.001),
         uniqTreshold(0),
-        dataUsageRate{0, 0.1},
+        dataUsageRate{0, 1},
         sampleLoops(100000),
         errorRateEstLoops(100000),
+        minDist(10),
+        maxMutPerWindow(1),
         numUniqMuts(0),
         numCellWithMutationMin(1),
+        normalCellFilter(1),
         minCoverage(1),
         minCoverageAcrossCells(0),
         numMinCoverageAcrossCells(0),
@@ -749,10 +759,14 @@ class my_label_writer {
 
     my_label_writer(boost::adjacency_list<boost::vecS,boost::vecS, boost::bidirectionalS, Vertex<SimpleTree>> const & simpleTree_,
             std::vector<std::tuple<std::string, unsigned, char, char>> const & indexToPosition_,
-            std::vector<std::string> const & cellNames_) : 
+            std::vector<std::string> const & cellNames_,
+            std::vector<std::string> const & cellColours_, 
+            std::vector<unsigned> const & cellClusters_) : 
         simpleTree(simpleTree_),
         indexToPosition(indexToPosition_),
-        cellNames(cellNames_)
+        cellNames(cellNames_),
+        cellColours(cellColours_),
+        cellClusters(cellClusters_)
     {}
 
     template <class VertexOrEdge>
@@ -760,15 +774,15 @@ class my_label_writer {
 
         if (simpleTree[v].sample == -1)
         {
-            out << "[label=\"";
+            out << "[style=filled, fillcolor=grey82, label=\"";
         }
         else
         {
-            out << "[shape=box,label=\"" << cellNames[simpleTree[v].sample] << "\n";
+            out << "[shape=" << (cellClusters[simpleTree[v].sample] == 1 ? "box" : "diamond") << ",style=filled, fillcolor=" << cellColours[simpleTree[v].sample] << ",label=\"" << cellNames[simpleTree[v].sample] << "\\n";
         }
         for (unsigned i = 0; i < simpleTree[v].mutations.size(); ++i)
         {
-            out << std::get<0>(this->indexToPosition[simpleTree[v].mutations[i]]) << "_" << std::to_string(std::get<1>(this->indexToPosition[simpleTree[v].mutations[i]])) <<  "\n";
+            out << std::get<0>(this->indexToPosition[simpleTree[v].mutations[i]]) << "_" << std::to_string(std::get<1>(this->indexToPosition[simpleTree[v].mutations[i]])) <<  "\\n";
         }
         out << "\"]";
     }
@@ -777,6 +791,8 @@ class my_label_writer {
     boost::adjacency_list<boost::vecS,boost::vecS, boost::bidirectionalS, Vertex<SimpleTree>> const & simpleTree;
     std::vector<std::tuple<std::string, unsigned, char, char>> const & indexToPosition;
     std::vector<std::string> const & cellNames;
+    std::vector<std::string> const & cellColours;
+    std::vector<unsigned> const & cellClusters;
 };
 
 // this prints the graph as it is currently used

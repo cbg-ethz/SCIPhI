@@ -112,7 +112,6 @@ writeVCFHeader(Config<SampleTree> const & config,
         }
     }
     outFile << "\n";
-    outFile.close();
 }
 
 
@@ -169,6 +168,7 @@ writeVCFMultiEntry(std::ofstream & outFile,
         Config<SampleTree> const & config,
          std::vector<unsigned> & entries)
 {
+    std::cout << "test3: " << entries.size() << std::endl;
     for (unsigned alt = 0; alt < entries.size(); ++alt)
     {
         // chrom
@@ -241,6 +241,9 @@ writeVCF(Config<SampleTree> const & config,
     writeVCFHeader(config, outFile);
 
     // create a map to sort the mutations according to chromosome and position
+    
+    std::cout << "TEST: " << config.indexToPosition.size() << std::endl;
+
     std::map<std::pair<std::string, unsigned>, std::vector<unsigned>> posMap;
     for (unsigned i = 0; i < config.indexToPosition.size(); ++i)
     {
@@ -256,6 +259,7 @@ writeVCF(Config<SampleTree> const & config,
         }
     }
 
+    std::cout << "Test2: " << posMap.size() << std::endl;
     for (auto it = posMap.begin(); it != posMap.end(); ++it)
     {
         writeVCFEntry(outFile, config, it->second);
@@ -298,9 +302,9 @@ void writeNucInfo(Config<SampleTree> const & config)
         // alt
         outFile << std::get<3>(config.indexToPosition[i]);
 
-        for (unsigned j = 0; j < config.getData().size(); ++j)
+        for (unsigned j = 0; j < config.getCompleteData().size(); ++j)
         {
-            outFile << "\t" << std::get<0>(config.getData()[j][i]) << "\t" << std::get<1>(config.getData()[j][i]);
+            outFile << "\t" << std::get<0>(config.getCompleteData()[j][i]) << "\t" << std::get<1>(config.getCompleteData()[j][i]);
         }
         outFile << "\n";
     }

@@ -97,7 +97,10 @@ int readParameters(Config<TTreeType> & config, int argc, char* argv[]){
 		("wildOverDis", boost::program_options::value<double>(&std::get<0>(config.params[0])), "Overdispersion for wild type. [100]")
 		("mutationOverDis", boost::program_options::value<double>(&std::get<0>(config.params[1])), "Overdispersion for mutant type. [2]")
 		("wildMean", boost::program_options::value<double>(&std::get<0>(config.params[2])), "Mean error rate. [0.001]")
+		("md", boost::program_options::value<decltype(config.minDist)>(&config.minDist), "Window size for maximum number of allowed mutations. [10]")
+		("mmw", boost::program_options::value<decltype(config.maxMutPerWindow)>(&config.maxMutPerWindow), "Maximum number of mutations allowed per window. [1]")
 		("cwm", boost::program_options::value<decltype(config.numCellWithMutationMin)>(&config.numCellWithMutationMin), "Number of cells requiered to have a mutation in order to be called. [1]")
+		("ncf", boost::program_options::value<decltype(config.normalCellFilter)>(&config.normalCellFilter), "Normal cell filter. Currently there are three options: (0) Do not use the normal cells for filtering; (1) use a simple filtering scheme excluding mutations if the probablity of being mutated is higher than not being mutated for any cell independently; (2) filter mutations where the probility that at least one cell is mutated is higher than no cell is mutated. Note that in contrast to (1) the cells are not independent and cells with no alternative support need to be explained via dropout events. [1]")
 		("mc", boost::program_options::value<decltype(config.minCoverage)>(&config.minCoverage), "Minimum coverage required per cell. [1]")
 		("mcc", boost::program_options::value<decltype(config.minCoverageAcrossCells)>(&config.minCoverageAcrossCells), "Minimum coverage required by at least x cells which support the alternative. [0]")
 		("nmc", boost::program_options::value<decltype(config.numMinCoverageAcrossCells)>(&config.numMinCoverageAcrossCells), "Number of cells which need a minimum coverage which support the alternative.")
@@ -240,5 +243,5 @@ int main(int argc, char* argv[])
     computeLogScoresOP(config);
     TGraph newTreeBest = simplifyTree(config);
     std::ofstream ofs2(config.outFilePrefix + ".gv");
-    write_graphviz(ofs2, newTreeBest, my_label_writer(newTreeBest, config.indexToPosition, config.cellNames));
+    write_graphviz(ofs2, newTreeBest, my_label_writer(newTreeBest, config.indexToPosition, config.cellNames, config.cellColours, config.cellClusters));
 }
