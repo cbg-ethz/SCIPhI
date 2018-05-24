@@ -209,7 +209,7 @@ manageBestTrees(Config<SampleTree> & config,
         //save the current best tree to disk
         boost::adjacency_list<boost::vecS, boost::vecS, boost::bidirectionalS, Vertex<SimpleTree>> newTreeBest = simplifyTree(config);
         std::ofstream ofs(config.outFilePrefix + ".gv");
-        write_graphviz(ofs, newTreeBest, my_label_writer(newTreeBest, config.indexToPosition, config.cellNames));
+        write_graphviz(ofs, newTreeBest, my_label_writer(newTreeBest, config.indexToPosition, config.cellNames, config.cellColours, config.cellClusters));
         ofs.close();
     }
 }

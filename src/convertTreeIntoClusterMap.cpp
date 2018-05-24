@@ -41,6 +41,7 @@
 #include <boost/graph/graphviz.hpp>
 #include <boost/graph/depth_first_search.hpp>
 #include <boost/algorithm/string.hpp>
+#include <boost/algorithm/string_regex.hpp>
 #include <boost/graph/adjacency_list.hpp>
 
 struct Files
@@ -88,7 +89,8 @@ public:
     {
         std::string label = boost::get("label", dp, v);
         std::vector<std::string> splitVec;
-        boost::split(splitVec, label, boost::is_any_of(":\n "), boost::token_compress_on);
+        boost::algorithm::split_regex(splitVec, label, boost::regex("\\\\n") ) ;
+        //boost::split(splitVec, label, boost::is_any_of(":\n "), boost::token_compress_on);
         if(out_degree(v, g) != 0)
         {
             for (unsigned i = 0; i < splitVec.size() - 1; ++i)
@@ -123,7 +125,7 @@ public:
         if(out_degree(v, g) == 0)
         {
             std::vector<std::string> splitVec;
-            boost::split(splitVec, label, boost::is_any_of(" :\n"));
+            boost::algorithm::split_regex(splitVec, label, boost::regex("\\\\n") ) ;
             cells.push_back(splitVec[0]);
         }
         return ;

@@ -31,6 +31,7 @@
 
 #include <cctype>
 #include <set>
+#include <queue>
 
 #include "sciphi_config.h"
 #include "probabilities.h"
@@ -318,10 +319,27 @@ readCellNames(Config<TTreeType> & config)
         if (currLine != "")
         {
             boost::split(splitVec, currLine, boost::is_any_of("\t"));
-            if (splitVec.back() == "CT" || (config.useNormalCellsInTree && splitVec.back() == "CN"))
+            if (splitVec[1] == "CT" || (config.useNormalCellsInTree && splitVec[1] == "CN"))
             {
                 boost::split(splitVecEntry, splitVec[0], boost::is_any_of("/"));
                 config.cellNames.push_back(splitVecEntry.back());
+                if (splitVec.size() > 2)
+                {
+                    config.cellColours.push_back(splitVec[2]);
+                    if (splitVec.size() > 3)
+                    {
+                        config.cellClusters.push_back(std::stoi(splitVec[3]));
+                    }
+                    else
+                    {
+                        config.cellClusters.push_back(1);
+                    }
+                }
+                else
+                {
+                    config.cellColours.push_back("white");
+                    config.cellClusters.push_back(1);
+                }
             }
         }
     }
@@ -342,8 +360,6 @@ readCellInformation(std::vector<unsigned> & tumorCellPos, std::vector<unsigned> 
     std::ifstream inputStream(config.bamFileNames);
 
     std::vector<std::string> splitVec;
-    std::vector<std::string> splitVecEntry;
-
     unsigned counter = 0;
     std::string currLine;
 
@@ -352,7 +368,7 @@ readCellInformation(std::vector<unsigned> & tumorCellPos, std::vector<unsigned> 
         if (currLine != "")
         {
             boost::split(splitVec, currLine, boost::is_any_of("\t"));
-            if (splitVec.back() == "BN")
+            if (splitVec[1] == "BN")
             {
                 if (normalBulkPos != UINT_MAX)
                 {
@@ -363,14 +379,14 @@ readCellInformation(std::vector<unsigned> & tumorCellPos, std::vector<unsigned> 
                     normalBulkPos = counter;
                 }
             }
-            if (splitVec.back() == "BT")
+            if (splitVec[1] == "BT")
             {
             }
-            if (splitVec.back() == "CN")
+            if (splitVec[1] == "CN")
             {
                 normalCellPos.push_back(counter);
             }
-            if (splitVec.back() == "CT" || (config.useNormalCellsInTree && splitVec.back() == "CN"))
+            if (splitVec[1] == "CT" || (config.useNormalCellsInTree && splitVec[1] == "CN"))
             {
                 tumorCellPos.push_back(counter);
             }
@@ -485,13 +501,13 @@ void printCurrentChrom(std::string & currentChrom, std::string const & testChrom
     }
 }
 
-double updateLogH1Temp(double logH1Temp, unsigned numCells, unsigned numMuts, bool useTreePrior, double dropOut)
+double updateLogH1Temp(double logH1Temp, unsigned numCells, unsigned numMuts, bool tumorCells, double dropOut)
 {
-    if (useTreePrior)
+    if (tumorCells)
     {
         return logH1Temp + 2 * logNChooseK(numCells, numMuts) - std::log(2*numMuts - 1) - logNChooseK(2*numCells, 2*numMuts);
     }
-    return logH1Temp + logNChooseK(numCells, numMuts) + std::log(std::pow(dropOut, numMuts)) + std::log(std::pow(1.0 - dropOut, numCells - numMuts));
+    return logH1Temp + logNChooseK(numCells, numMuts) + std::log(std::pow(1.0 - dropOut, numMuts)) + std::log(std::pow(dropOut, numCells - numMuts)) - (1.0 - std::pow(dropOut, numCells));
 }
 
 bool mustH0Win(double & logH1Max, double logH1Temp, double logNumCells, double logH0)
@@ -511,15 +527,79 @@ bool mustH0Win(double & logH1Max, double logH1Temp, double logNumCells, double l
     return false;
 }
 
+bool isInRange(unsigned minDist,
+        std::string const & currentChrom,
+        std::string const & nextChrom,
+        int currentPos,
+        int nextPos)
+{
+    if ((currentChrom == nextChrom) && (std::abs(currentPos - nextPos) <= minDist))
+    {
+        return true;
+    }
+    return false;
+}
+
+template <typename TTreeType, typename TData>
+std::vector<unsigned> getProximity(Config<TTreeType> & config, TData const & data)
+{
+    std::vector<unsigned> proximity(data.size(), 0);
+    for (unsigned i = 0; i < data.size(); ++i)
+    {
+        unsigned l = i;
+        while (l > 0)
+        {
+            --l;
+            if (isInRange(config.minDist,
+                        std::get<0>(std::get<0>(data[i])),
+                        std::get<0>(std::get<0>(data[l])),
+                        std::get<1>(std::get<0>(data[i])),
+                        std::get<1>(std::get<0>(data[l]))))
+            {
+                ++proximity[i];
+            }
+            else
+            {
+                break;
+            }
+        }
+        unsigned r = i;
+        while (r > 0)
+        {
+            ++r;
+            if (isInRange(config.minDist,
+                        std::get<0>(std::get<0>(data[i])),
+                        std::get<0>(std::get<0>(data[r])),
+                        std::get<1>(std::get<0>(data[i])),
+                        std::get<1>(std::get<0>(data[r]))))
+            {
+                ++proximity[i];
+            }
+            else
+            {
+                break;
+            }
+        }
+    }
+    return proximity;
+}
+
 template <typename TTreeType, typename TData>
 void insertData(Config<TTreeType> & config, TData const & data)
 {
+    std::string currentChrom = "";
+    std::vector<unsigned> proximity = getProximity(config, data);
+
     for (size_t i = 0; i < data.size(); ++i)
     {
-        config.indexToPosition.push_back(std::get<0>(data[i]));
-        for (size_t j = 0; j < std::get<1>(data[i]).size(); ++j)
+        if (proximity[i] < config.maxMutPerWindow)
         {
-            config.getCompleteData()[j].push_back(std::get<1>(data[i])[j]);
+            config.indexToPosition.push_back(std::get<0>(data[i]));
+            for (size_t j = 0; j < std::get<1>(data[i]).size(); ++j)
+            {
+
+                config.getCompleteData()[j].push_back(std::get<1>(data[i])[j]);
+            }
         }
     }
 }
@@ -544,8 +624,7 @@ passNormalFilter(std::array<unsigned, 5> const & normalCounts, Config<TTreeType>
 
 template <typename TTreeType>
 bool
-passNormalCellFilter(std::vector<std::array<unsigned, 5>> const & normalCellCounts, 
-        unsigned j,
+passNormalCellCoverage(std::vector<std::array<unsigned, 5>> const & normalCellCounts, 
         Config<TTreeType> const & config)
 {
     unsigned maxCov = 0;
@@ -556,10 +635,6 @@ passNormalCellFilter(std::vector<std::array<unsigned, 5>> const & normalCellCoun
         {
             maxCov = normalCellCounts[i][4];
         }
-        //if (computeWildLogScore(config, normalCellCounts[i][j], normalCellCounts[i][4]) < computeRawMutLogScore(config, normalCellCounts[i][j], normalCellCounts[i][4]))
-        //{
-        //    ++numMutated;
-        //}
     }
 
     if(maxCov < config.minCovNormalCell)
@@ -567,10 +642,29 @@ passNormalCellFilter(std::vector<std::array<unsigned, 5>> const & normalCellCoun
         return false;
     }
 
-    //if (numMutated > config.maxNumberNormalCellMutated)
-    //{
-    //    return false;
-    //}
+    return true;
+}
+
+template <typename TTreeType>
+bool
+passNormalCellFilter(std::vector<std::array<unsigned, 5>> const & normalCellCounts, 
+        unsigned j,
+        Config<TTreeType> const & config)
+{
+    unsigned maxCov = 0;
+    unsigned numMutated = 0;
+    for (size_t i = 0; i < normalCellCounts.size(); ++i)
+    {
+        if (computeWildLogScore(config, normalCellCounts[i][j], normalCellCounts[i][4]) < computeRawMutLogScore(config, normalCellCounts[i][j], normalCellCounts[i][4]))
+        {
+            ++numMutated;
+        }
+    }
+
+    if (numMutated > config.maxNumberNormalCellMutated)
+    {
+        return false;
+    }
     
     return true;
 }
@@ -585,7 +679,7 @@ bool computeProbCellsAreMutated(
     std::vector<double> & cellsNotMutated,
     std::vector<double> & cellsMutated,
     unsigned currentChar,
-    bool useTreePrior)
+    bool tumorCells)
 {
     unsigned numCells = filteredCounts.size();
     double logNumCells = log(numCells);
@@ -596,10 +690,18 @@ bool computeProbCellsAreMutated(
         cellsNotMutated[i-1] = computeWildLogScore(config, filteredCounts[i - 1][currentChar], filteredCounts[i - 1][4]);
         cellsMutated[i-1] = computeRawMutLogScore(config, filteredCounts[i - 1][currentChar], filteredCounts[i - 1][4]);
         tempLogProbs[i] = tempLogProbs[i - 1] + cellsNotMutated[i - 1];
+        //std::cout << filteredCounts[i - 1][currentChar] << ":" << filteredCounts[i - 1][4] << ":" << cellsNotMutated[i-1] << ":" << cellsMutated[i-1] << "\t";
     }
+    //std::cout << std::endl;
     swap(logProbs, tempLogProbs);
-    double logH0 = logProbs.back() + log(1.0 - config.priorMutationRate); 
+
+    double prior = tumorCells ? config.priorMutationRate : config.priorGermlineRate;
+
+    double logH0 = logProbs.back() + log(1.0 - prior); 
+
     logProbTempValues[0] = logH0;
+
+    //std::cout << "0:\t" << logProbTempValues[0] << std::endl;
 
     // compute the probabilitues of observing 1, 2, 3, ... mutations
     double logH1Max = -DBL_MAX; // the current best alternative score
@@ -623,18 +725,34 @@ bool computeProbCellsAreMutated(
         }
         swap(logProbs, tempLogProbs);
         logNOverK = logNChooseK(numCells, numMut, logNOverK);
-        double logH1Temp = logProbs.back() + log(config.priorMutationRate) - logNOverK;
-        logH1Temp = updateLogH1Temp(logH1Temp, numCells, numMut, useTreePrior, config.getParam(Config<TTreeType>::mu));
+        double logH1Temp = logProbs.back() + log(prior) - logNOverK;
+        //std::cout << numMut << ":\t" << logH1Temp << "\t";
+        logH1Temp = updateLogH1Temp(logH1Temp, numCells, numMut, tumorCells, (1.0 - config.getParam(Config<TTreeType>::mu)) / 2.0);
 
         // check whether the alternative hyothesis can win
         bool h0Wins = mustH0Win(logH1Max, logH1Temp, logNumCells, logH0);
         logProbTempValues[numMut] = logH1Temp;
+        //std::cout << logProbTempValues[numMut] << std::endl;
         if (h0Wins)
         { 
             return true;
         }
     }
     return false;
+}
+
+template <typename TEntry>
+void randomizeMutPositions(std::vector<TEntry> & data)
+{
+    TEntry temp;
+    for (size_t i = 0; i < data.size() * 10; ++i)
+    {
+        size_t first = std::rand() % data.size();
+        size_t second = std::rand() % data.size();
+        temp = data[first];
+        data[first] = data[second];
+        data[second] = temp;
+    }
 }
 
 
@@ -703,6 +821,9 @@ bool readMpileupFile(Config<TTreeType> & config)
 
     GappedNoiseCounts gappedNoiseCounts;
 
+    std::cout.precision(15);
+    config.printParameters();
+
     while (getline(inputStream, currLine))
     {
         // solit the current line into easily accessible chunks
@@ -726,7 +847,7 @@ bool readMpileupFile(Config<TTreeType> & config)
             if(normalCellPos.size() > 0)
             {
                 extractSeqInformation(countsNormal, splitVec, normalCellPos);
-                if (!passNormalCellFilter(countsNormal, 0, config))
+                if (!passNormalCellCoverage(countsNormal, config))
                 {
                     continue;
                 }
@@ -736,7 +857,6 @@ bool readMpileupFile(Config<TTreeType> & config)
 
             filteredCounts = counts;
             applyCoverageFilterPerCell(filteredCounts, config);
-            //applySuppFreqFilterPerCell(filteredCounts, config);
 
             bool positionMutated = false;
             for (unsigned short j = 0; j < 4; ++j)
@@ -749,26 +869,43 @@ bool readMpileupFile(Config<TTreeType> & config)
               
                 if(normalCellPos.size() > 0)
                 {
-                    bool h0WinsNormal = computeProbCellsAreMutated(config, 
-                            logProbsNormal, 
-                            tempLogProbsNormal, 
-                            logProbTempValuesNormal, 
-                            countsNormal,
-                            cellsNotMutatedNormal,
-                            cellsMutatedNormal,
-                            j,
-                            false);
-
-                    double logH0Normal = sumValuesInLogSpace(logProbTempValuesNormal.begin(),logProbTempValuesNormal.begin() + config.maxNumberNormalCellMutated + 1);
-                    double logH1Normal = sumValuesInLogSpace(logProbTempValuesNormal.begin() + config.maxNumberNormalCellMutated + 1, logProbTempValuesNormal.end());
-
-                    if (logH0Normal < logH1Normal) 
+                    // use the normal cell filter
+                    if (config.normalCellFilter == 1)
                     {
-                        positionMutated = true;
-                        h0Wins = true;
-                        continue;
+                        if (!passNormalCellFilter(countsNormal, j, config))
+                        {
+                            continue;
+                            positionMutated = true;
+                            h0Wins = true;
+                        }
+                    }
+                    else if (config.normalCellFilter == 2)
+                    {
+                        bool h0WinsNormal = computeProbCellsAreMutated(config, 
+                                logProbsNormal, 
+                                tempLogProbsNormal, 
+                                logProbTempValuesNormal, 
+                                countsNormal,
+                                cellsNotMutatedNormal,
+                                cellsMutatedNormal,
+                                j,
+                                false);
+
+                        if (!h0WinsNormal)
+                        {
+                            double logH0Normal = sumValuesInLogSpace(logProbTempValuesNormal.begin(),logProbTempValuesNormal.begin() + config.maxNumberNormalCellMutated + 1);
+                            double logH1Normal = sumValuesInLogSpace(logProbTempValuesNormal.begin() + config.maxNumberNormalCellMutated + 1, logProbTempValuesNormal.end());
+
+                            if (logH0Normal < logH1Normal) 
+                            {
+                                positionMutated = true;
+                                h0Wins = true;
+                                continue;
+                            }
+                        }
                     }
                 }
+
 
                 double logH0 = -DBL_MAX;
                 double logH1 = -DBL_MAX;
@@ -866,10 +1003,10 @@ bool readMpileupFile(Config<TTreeType> & config)
                         if (numAffectetCells > 1)
                         {
                           data.push_back(TDataEntry(TPositionInfo(splitVec[0], std::stoi(splitVec[1]), splitVec[2][0], indexToChar(j)), tempCounts, logH1/logH0));
-                          ofs << splitVec[0] << "\t" << splitVec[1] << "\t" <<  splitVec[2][0] << "\t" <<  indexToChar(j) << "\t";
-                          for (auto it = tempCounts.begin(); it != tempCounts.end(); ++it)
-                              ofs << std::get<0>(*it) << "\t" << std::get<1>(*it) << "\t";
-                          ofs<< "\n";
+                          //ofs << splitVec[0] << "\t" << splitVec[1] << "\t" <<  splitVec[2][0] << "\t" <<  indexToChar(j) << "\t";
+                          //for (auto it = tempCounts.begin(); it != tempCounts.end(); ++it)
+                          //    ofs << std::get<0>(*it) << "\t" << std::get<1>(*it) << "\t";
+                          //ofs<< "\n";
                         }
                         else
                         {
@@ -889,15 +1026,13 @@ bool readMpileupFile(Config<TTreeType> & config)
     config.noiseCounts = NoiseCounts(gappedNoiseCounts);
     computeNoiseScore(config);
 
-    //std::sort(begin(data), end(data), 
-    //    [](TDataEntry const &t1, TDataEntry const &t2) {return get<2>(t1) > get<2>(t2);}
-    //);
-
+    //randomizeMutPositions(data);
 
     insertData(config, data);
+    writeNucInfo(config);
+
     return 0;
 }
-
 
 template <typename TTreeType>
 void getData(Config<TTreeType> & config)
