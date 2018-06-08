@@ -85,7 +85,7 @@ writeVCFHeader(Config<SampleTree> const & config,
     // get current date
     auto t = std::time(nullptr);
     auto tm = *std::localtime(&t);
-    outFile << "##fileDate=" << std::put_time(&tm, "%d-%m-%Y") <<"\n";
+    //outFile << "##fileDate=" << std::put_time(&tm, "%d-%m-%Y") <<"\n";
     
     outFile << "##source=SCATE\n";
     outFile << "##FILTER=<ID=LowQual,Description=\"Low quality\">\n";

@@ -311,7 +311,7 @@ public:
             attachmentScores[v].hetScore() = addLogProb(attachmentScores[v].hetScore(), attachmentScores[parentNode].hetScore());
             if(config.computeMixScore)
             {
-                if (isnan(attachmentScores[v].mixWildScore()))
+                if (std::isnan(attachmentScores[v].mixWildScore()))
                 {
                     attachmentScores[v].mixWildScore() = attachmentScores[parentNode].mixWildScore();
                     attachmentScores[v].mixHomScore() = attachmentScores[parentNode].mixHomScore();
