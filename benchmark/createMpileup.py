@@ -55,9 +55,6 @@ mutPosFileName = args.inMutFile
 
 random.seed(args.seed)
 numpy.random.seed(args.seed)
-print(random.random())
-
-print(args)
 
 def indexToChar(index):
     if (index == 0):
@@ -205,11 +202,9 @@ def createCoverageRegions():
             if random.uniform(0, 1) < pOpenRegion:
                 end = pos - 1
                 if args.missingInfo > 0.0 and random.uniform(0, 1) < args.missingInfo:
-                    print(cell, start, end, 0)
                     covRegions[cell].append((start, end, 0))
                 else:
                     covRegions[cell].append((start, end, numpy.random.negative_binomial(r, u)))
-                    print(cell, start, end, covRegions[cell][-1])
                 start = pos
             pos += 1
         end = numPos
@@ -241,8 +236,6 @@ for pos in range (1, numPos + 1):
     while alt == ref:
         alt = indexToChar(random.randint(0,3))
     for cell in range(0, numCells):
-        #print(cell, " ", pos, " v ", posInCovRange[cell], " t ", covRegions[cell][posInCovRange[cell]][0])
-
         localCov = covRegions[cell][posInCovRange[cell]][2]
         if localCov == 0:
             #print("test: " + str(localCov))
