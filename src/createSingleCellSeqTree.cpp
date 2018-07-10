@@ -655,37 +655,30 @@ void writeTreeSampleTree(std::vector<std::vector<int>> const & mutationToNodeAss
     std::ofstream outFile;
     outFile.open(toCString(options.outFileTreeStructure));
 	outFile << "digraph mutationTree{" << std::endl;
-    outFile << "\trankdir = BT;" << std::endl;
+    outFile << "rankdir = BT;" << std::endl;
     unsigned i = 1;
 	for (; i < options.numSamples - 1; ++i)
 	{
-		outFile << "\t" << positionVec[i] << " -> " << positionVec[treeStructure[i]] << "[dir=back];" << std::endl;
+		outFile << i << " -> " << treeStructure[i] << "[dir=back];" << std::endl;
 	}
 	for (; i < 2 * options.numSamples - 1; ++i)
 	{
-		outFile << "\tS" << i << " -> " << positionVec[treeStructure[i]] << "[dir=none];" << std::endl;
+		outFile << i << " -> " << treeStructure[i] << "[dir=none];" << std::endl;
 	}
 
 	for (i = 0; i < 2 * options.numSamples - 1; ++i)
     {
         if (i < options.numSamples - 1)
         {
-    		outFile << "\t" << positionVec[i] << " [label=\"M:" << i << " "; //[shape=box];" << std::endl;
+    		outFile << i << " [label=\"" << i << "\\n"; //[shape=box];" << std::endl;
         }
         else
         {
-		    outFile << "\tS" << i << " [label=\"S" << i << " - M:"; // << i << " [shape=box];" << std::endl;
+		    outFile << i << " [label=\"" << i << ".bam\\n"; // << i << " [shape=box];" << std::endl;
         }
         for (unsigned j = 0; j < options.numMutations; ++j)
         {
-            if (mutationToNodeAssignment[i][j] == 1 || mutationToNodeAssignment[i][j] == 3) // hetero, dropout
-            {
-                outFile  << mutationToNodeAssignment[i][j] << "_" << positionVec[j] << ";";
-            }
-            else if (mutationToNodeAssignment[i][j] == 2) // homo
-            {
-                outFile << mutationToNodeAssignment[i][j]<< "_" << positionVec[j] << ";";
-            }
+            outFile << mutationToNodeAssignment[i][j] << "_" << positionVec[j] << "\\n";
         }
         if (i < options.numSamples - 1)
         {
