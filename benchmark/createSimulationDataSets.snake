@@ -23,34 +23,40 @@ from subprocess import call
 from snakemake.utils import R
 import random
 
-OUTDIR = "simulation/"
-NUMPOSITIONS = 1000000
-DROPOUTRATE = 0.2
-LOOPS = 1000000
-MAXCOVERAGE = 300
-NUMMUTATIONS = 100
-NUMCELLS = ['10', '25', '50']
-PRIORSSCIPHI = ['0.01','0.001','0.0001','0.00001','0.000001',]
-PRIORSMONOVAR = ['0.2','0.02','0.002','0.0002','0.00002',]
-DROPOUTS = ['0', '0.1', '0.2', '0.3']
-ZYGS = ['0', '0.1', '0.2', '0.3']
-CPNS = ['0', '0.125', '0.25', '0.375', '0.5']
-NUMRUNS = 50
-MDAERRORRATE = 0.0000005
-SEQUENCINGERRORRATE = 0.001
-COVMEAN = 25
-COVVAR = 50
-AVERAGEREGIONLENGTH = 1000
-
-include: "tools.py"
-
-rule all:
-    input:
-        OUTDIR + 'distance_numCells.txt',
-        OUTDIR + 'distance_drop.txt',
-        OUTDIR + 'distance_prior.txt',
-        OUTDIR + 'distance_zyg.txt',
-        OUTDIR + 'distance_cpn.txt',
+#OUTDIR = "/cluster/work/bewi/members/singerj/projects/single_cell/submission/simulation_1_1_er_0.001_nm/"
+#NUMPOSITIONS = 1000000
+#NUMPOSITIONS = 10000
+#DROPOUTRATE = 0.2
+#LOOPS = 1000000
+#MAXCOVERAGE = 300
+#NUMMUTATIONS = 100
+#NUMCELLS = ['10', '25', '50']
+#NUMCELLS = ['10']
+#PRIORSSCIPHI = ['0.01','0.001','0.0001','0.00001','0.000001',]
+#PRIORSMONOVAR = ['0.2','0.02','0.002','0.0002','0.00002',]
+#DROPOUTS = ['0', '0.1', '0.2', '0.3']
+#DROPOUTS = ['0.2']
+#ZYGS = ['0', '0.1', '0.2', '0.3']
+#ZYGS = ['0.1']
+#CPNS = ['0', '0.125', '0.25', '0.375', '0.5']
+#CPNS = ['0.125']
+#NUMRUNS = 2
+#MDAERRORRATE = 0.0000005
+#SEQUENCINGERRORRATE = 0.001
+#COVMEAN = 25
+#COVVAR = 50
+#AVERAGEREGIONLENGTH = 1000
+#
+#include: "tools.py"
+#
+#rule all:
+#    input:
+#        #OUTDIR + 'distance_numCells.txt',
+#        #OUTDIR + 'distance_drop.txt',
+#        #OUTDIR + 'distance_prior.txt',
+#        #OUTDIR + 'distance_zyg.txt',
+#        #OUTDIR + 'distance_cpn.txt',
+#        OUTDIR + 'distance_tree.txt',
 
 def getSeed(wildcards):
     return str(int(wildcards.run) + 2)
@@ -58,6 +64,7 @@ def getSeed(wildcards):
 rule createTree:
     output:
         tsvArt = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/cpn_{cpn}/run_{run}/art_tree_mut2sample.tsv',
+        dotArt = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/cpn_{cpn}/run_{run}/art_tree_structure.dot'
     params:
         lsfoutfile = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/cpn_{cpn}/run_{run}/art_tree_mutations.lsfout.log',
         lsferrfile = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/cpn_{cpn}/run_{run}/art_tree_mutations.lsferr.log',
@@ -132,11 +139,13 @@ rule createMpileup:
         '-n ' + str(NUMPOSITIONS) + ' ' +
         '-c ' + str(COVMEAN) + ' ' +
         '-v ' + str(COVVAR) + ' ' +
-        '-a ' + str(AVERAGEREGIONLENGTH) + ' ' +
+        '-l ' + str(AVERAGEREGIONLENGTH) + ' ' +
         '-N {wildcards.cells} ' + 
         '-m ' + str(MDAERRORRATE) + ' ' +
         '-e ' + str(SEQUENCINGERRORRATE) + ' ' +
         '-M 0.1 ' +
+        '-a ' + str(ALPHA) + ' ' +
+        '-b ' + str(BETA) + ' ' +
         '-s {params.seed}')
 
 localrules: createBamFileSummaryScate
@@ -296,8 +305,6 @@ rule compare2GroundTruth:
 
         infile.close()
             
-
-        
         outfileFP = open(output.fp, 'w')
         outfileFN = open(output.fn, 'w')
        
@@ -383,6 +390,16 @@ rule compare2GroundTruth:
         outfile.write("truePositives\ttrueNegatives\tfalsePositives\tfalseNegatives\n")
         outfile.write(str(truePositives) + "\t" + str(trueNegatives) + "\t" + str(falsePositives) + "\t" + str(falseNegatives) + "\n")
         outfile.close()
+
+localrules: computeTreeDistance
+rule computeTreeDistance:
+    input:
+        sciphi = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/cpn_{cpn}/run_{run}/prior_{prior}/{tool}/{sample}.gv',
+        gvArt = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/cpn_{cpn}/run_{run}/art_tree_structure.dot',
+    output: 
+        txt = OUTDIR + 'cells_{cells}/muts_{muts}/drop_{drop}/zyg_{zyg}/cpn_{cpn}/run_{run}/prior_{prior}/{tool}/{sample}_tree_distance.txt'
+    shell:
+        PYTHON3 + ' ' + COMPUTETREEDISTANCE + ' {input.gvArt} {input.sciphi} > {output.txt}'
 
 rule createPNCounts:
     input:
@@ -470,3 +487,15 @@ rule gatherBenchmarksCpns:
     shell:
         (PYTHON3 + ' ' + GATHERBENCH + ' {output.txt} {input}; ' +
         'Rscript ' + PLOTCPNS + ' {output.txt}')
+
+localrules: gatherBenchmarksTrees
+rule gatherBenchmarksTrees:
+    input:
+        expand(OUTDIR + 'cells_{numCells}/muts_100/drop_0.2/zyg_0/cpn_0/run_{run}/prior_0.0001/sciphi/force_zyg_1/sciphi_tree_{{distance}}.txt', numCells = NUMCELLS, run = range(0, NUMRUNS)),
+    output:
+        txt = OUTDIR + '{distance}_tree.txt',
+        pdf = OUTDIR + '{distance}_tree.pdf'
+    shell:
+        ('printf "run\\tcells\\tdist\\n" >> {output.txt}; ' +
+        'for f in {input}; do run=$(echo $f | awk -F\'run_\' \'{{print $2}}\' | cut -d \'/\' -f 1); num=$(echo $f | awk -F\'cells_\' \'{{print $2}}\' | cut -d \'/\' -f 1); printf \"${{run}}\\t${{num}}\\t\" >> {output.txt}; head -n 1 $f >> {output.txt}; done; ' +
+        'Rscript ' + PLOTTREEDIST + ' {output.txt}')
