@@ -31,7 +31,7 @@ parser.add_argument('-f', '--inMutFile', type=str)
 parser.add_argument('-n', '--numPos', type=int)
 parser.add_argument('-c', '--covMean', type=float)
 parser.add_argument('-v', '--covVar', type=float)
-parser.add_argument('-a', '--averageRegionLength', type=int)
+parser.add_argument('-l', '--averageRegionLength', type=int)
 parser.add_argument('-N', '--numCells', type=int)
 parser.add_argument('-m', '--mdaErrorRate', type=float)
 parser.add_argument('-e', '--sequencingErrorRate', type=float)
@@ -39,6 +39,8 @@ parser.add_argument('-d', '--mdaDupReplacement', type=float, default=0.0)
 parser.add_argument('-z', '--cygocityCoEff', type=float, default=0.1)
 parser.add_argument('-s', '--seed', type=int, default = 42)
 parser.add_argument('-M', '--missingInfo', type=float, default = 0.0)
+parser.add_argument('-a', '--alpha', type=int)
+parser.add_argument('-b', '--beta', type=int)
 args = parser.parse_args()
 
 outFileName = args.outFile
@@ -51,7 +53,8 @@ numCells = args.numCells
 mdaEr = args.mdaErrorRate
 er = args.sequencingErrorRate
 mutPosFileName = args.inMutFile
-
+alpha = args.alpha
+beta = args.beta
 
 random.seed(args.seed)
 numpy.random.seed(args.seed)
@@ -142,20 +145,20 @@ def writeMutType(outFile, refNuc, mutNuc, alleleAffacted, cov):
     counts = [0, 0, 0, 0]
 
     if alleleAffacted == '0':               # 2 chrom reference
-        counts[charToIndex(refNuc)] += 2
+        counts[charToIndex(refNuc)] += alpha + beta
     elif alleleAffacted == '1':             # 2 chrom: 1 chrom ref, 1 chrom mut
-        counts[charToIndex(refNuc)] += 1
-        counts[charToIndex(mutNuc)] += 1
+        counts[charToIndex(refNuc)] += alpha
+        counts[charToIndex(mutNuc)] += beta
     elif alleleAffacted == '2' or alleleAffacted == '4': # 1 chrom reference
-        counts[charToIndex(refNuc)] += 1
+        counts[charToIndex(refNuc)] += alpha
     elif alleleAffacted == '3' or alleleAffacted == '5': # 1 chrom mut
-        counts[charToIndex(mutNuc)] += 1
+        counts[charToIndex(mutNuc)] += beta
     elif int(alleleAffacted) >= 6: # copy number
-        counts[charToIndex(refNuc)] += 1
-        counts[charToIndex(mutNuc)] += 1 + 1 * (int(alleleAffacted) - 5)
+        counts[charToIndex(refNuc)] += alpha
+        counts[charToIndex(mutNuc)] += beta + beta * (int(alleleAffacted) - 5)
     elif int(alleleAffacted) < 0: # copy number
-        counts[charToIndex(refNuc)] += 1 + 1 * (-1 * int(alleleAffacted) - 5)
-        counts[charToIndex(mutNuc)] += 1
+        counts[charToIndex(refNuc)] += alpha + beta * (-1 * int(alleleAffacted) - 5)
+        counts[charToIndex(mutNuc)] += beta
     else:
         sys.exit(1)
 
