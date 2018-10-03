@@ -23,24 +23,19 @@ from subprocess import call
 from snakemake.utils import R
 import random
 
-OUTDIR = "/cluster/work/bewi/members/singerj/projects/single_cell/submission/simulation_1_1_er_0.001_nm/"
+OUTDIR = "/cluster/work/bewi/members/singerj/projects/single_cell/submission/nm/simulation_1_1_er_0.001/"
 NUMPOSITIONS = 1000000
-NUMPOSITIONS = 10000
 DROPOUTRATE = 0.2
 LOOPS = 1000000
 MAXCOVERAGE = 300
 NUMMUTATIONS = 100
 NUMCELLS = ['10', '25', '50']
-NUMCELLS = ['10']
 PRIORSSCIPHI = ['0.01','0.001','0.0001','0.00001','0.000001',]
 PRIORSMONOVAR = ['0.2','0.02','0.002','0.0002','0.00002',]
 DROPOUTS = ['0', '0.1', '0.2', '0.3']
-DROPOUTS = ['0.2']
 ZYGS = ['0', '0.1', '0.2', '0.3']
-ZYGS = ['0.1']
 CPNS = ['0', '0.125', '0.25', '0.375', '0.5']
-CPNS = ['0.125']
-NUMRUNS = 2
+NUMRUNS = 50
 MDAERRORRATE = 0.0000005
 SEQUENCINGERRORRATE = 0.001
 COVMEAN = 25
@@ -48,16 +43,26 @@ COVVAR = 50
 AVERAGEREGIONLENGTH = 1000
 ALPHA = 1
 BETA = 1
+VIOLATIONS = ['0','0.05','0.10']
 
 include: "tools.py"
 include: "createSimulationDataSets.snake"
 
 rule all:
     input:
-        #OUTDIR + 'distance_numCells.txt',
-        #OUTDIR + 'distance_drop.txt',
-        #OUTDIR + 'distance_prior.txt',
-        #OUTDIR + 'distance_zyg.txt',
-        #OUTDIR + 'distance_cpn.txt',
+        OUTDIR + 'distance_numCells.txt',
+        OUTDIR + 'distance_drop.txt',
+        OUTDIR + 'distance_prior.txt',
+        OUTDIR + 'distance_zyg.txt',
+        OUTDIR + 'distance_cpn.txt',
         OUTDIR + 'distance_tree.txt',
+        OUTDIR + 'distance_drop_wVS.txt',
+        OUTDIR + 'distance_vio.txt',
+        OUTDIR + 'noNAs_distance_numCells.txt',
+        OUTDIR + 'noNAs_distance_drop.txt',
+        OUTDIR + 'noNAs_distance_prior.txt',
+        OUTDIR + 'noNAs_distance_zyg.txt',
+        OUTDIR + 'noNAs_distance_cpn.txt',
+        OUTDIR + 'noNAs_distance_drop_wVS.txt',
+        OUTDIR + 'noNAs_distance_vio.txt',
 
