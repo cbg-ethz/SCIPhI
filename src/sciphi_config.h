@@ -204,6 +204,7 @@ class Config{
     TParams                                     params;                 // <overDisWild, overDisWildTmp>
                                                                         // <overDisMutation, overDisMutationTmp>
                                                                         // <wildMean, wildMeanTmp>
+    double                                      sub;                    // substitution error
     
     // the parameters for learning the tree parameters               
     TLearningParams                             learningParams;         // <sdWildOverDis, numTrails, numSuc>
@@ -246,19 +247,21 @@ class Config{
     std::string                                 inFileName;
     std::string                                 loadName;
     std::string                                 saveName;
+    std::string                                 bestName;
+    std::string                                 mutToMaxName;
     std::vector<std::string>                    cellNames;
     std::vector<std::string>                    cellColours;
     std::vector<unsigned>                       cellClusters;
     std::vector<std::tuple<std::string, unsigned, char, char>> indexToPosition;
     std::vector<std::vector<TAttachmentScores::TAttachmentScore>> mutInSampleCounter;
-    unsigned                                    minDist;
+    int                                         minDist;
     unsigned                                    maxMutPerWindow;
     unsigned                                    numUniqMuts;
     unsigned                                    numCellWithMutationMin;
     unsigned                                    normalCellFilter;
     unsigned                                    minCoverage;
     unsigned                                    minCoverageAcrossCells;
-    unsigned                                    numMinCoverageAcrossCells;
+    unsigned                                    minNumCellsPassFilter;
     unsigned                                    minSupport;
     double                                      minFreq;
     unsigned                                    minCovInControlBulk;
@@ -281,9 +284,10 @@ class Config{
         params{{TParamsTuple{100.0,100.0}, 
                 TParamsTuple{2, 2}, 
                 TParamsTuple{0.001, 0.001},
-                TParamsTuple{0.5, 0.5},
+                TParamsTuple{0.9, 0.9},
                 TParamsTuple{0, 0},
                 TParamsTuple{0, 0}}},
+        sub(0),
         learningParams{{TLearningParamsTuple{5.0, 0, 0}, 
                         TLearningParamsTuple{0.1, 0, 0}, 
                         TLearningParamsTuple{0.01, 0, 0},
@@ -301,18 +305,18 @@ class Config{
         priorMutationRate(0.0001),
         priorGermlineRate(0.001),
         uniqTreshold(0),
-        dataUsageRate{0, 1},
+        dataUsageRate{0, 0.1},
         sampleLoops(100000),
         errorRateEstLoops(100000),
-        minDist(10),
+        minDist(-1),
         maxMutPerWindow(1),
         numUniqMuts(0),
-        numCellWithMutationMin(1),
+        numCellWithMutationMin(2),
         normalCellFilter(1),
         minCoverage(1),
         minCoverageAcrossCells(0),
-        numMinCoverageAcrossCells(0),
-        minSupport(0),
+        minNumCellsPassFilter(2),
+        minSupport(3),
         minFreq(0),
         minCovInControlBulk(6),
         maxSupInControlBulk(2),
@@ -821,12 +825,12 @@ class my_label_writer_complete {
     boost::adjacency_list<boost::vecS,boost::vecS, boost::bidirectionalS, Vertex<SampleTree>> const & sampleTree;
 };
 
-template <typename TTreeType>
-double
-computeWildLogScore(Config<TTreeType> & config, double altCount, double coverage);
-template <typename TTreeType>
-double
-computeMutLogScore(Config<TTreeType> & config, double altCount, double coverage);
+//template <typename TTreeType>
+//double
+//computeWildLogScore(Config<TTreeType> & config, double altCount, double coverage);
+//template <typename TTreeType>
+//double
+//computeMutLogScore(Config<TTreeType> & config, double altCount, double coverage);
 
 std::array<double, 3> getStats(std::vector<double> & values)
 {

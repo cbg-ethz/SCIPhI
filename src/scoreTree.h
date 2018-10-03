@@ -210,7 +210,6 @@ unsigned getBestAttachmentPosition(Config<TTreeType> & config,
     typename Config<TTreeType>::TAttachmentScores & attachmentScores = config.getTmpAttachmentScore();
     getAllAttachmentScores(attachmentScores, scoreSum, config, attachment);
     
-
     unsigned bestPos = 0;
 	attachmentScores[0].computeFinalScore(
             config.getParam(Config<TTreeType>::nu),
