@@ -26,16 +26,18 @@ inputName <- args[1]
 df <- read.table(inputName, header = TRUE)
 #df$dist =df$dist + 1
 df$dist = as.numeric(df$dist)
-print(df)
 df$cells <- as.factor(df$cells)
-ggplot(data = df, aes(x = cells, y = dist)) + 
+ggplot(data = df, aes(x = cells, y = dist, fill = exp)) +
   geom_boxplot(outlier.size = NULL, outlier.shape = NA, alpha = 0.5) +
   xlab("Number of cells") +
-  ylab("Robinson-Foulds distance") +
+  ylab("Distance") +
   scale_y_continuous(limits = c(0, NA)) +
+  scale_fill_manual(values=c("#00BFC4","steelblue"), labels=c("inferred", "random")) +
+  #scale_fill_discrete("", labels=c("inferred", "random")) + 
   theme(legend.title=element_blank(),
-        legend.position = c(0.8, 0.2),
+        #legend.position = c(0.8, 0.2),
         text = element_text(size=25),
         legend.text.align = 0,
-        legend.key.size = unit(3., 'lines')) 
+        legend.key.size = unit(3., 'lines'))
 ggsave(paste(gsub(".txt","",inputName), ".pdf", sep=""))
+

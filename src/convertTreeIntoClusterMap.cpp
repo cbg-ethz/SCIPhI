@@ -43,6 +43,7 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/algorithm/string_regex.hpp>
 #include <boost/graph/adjacency_list.hpp>
+#include <boost/lexical_cast.hpp>
 
 struct Files
 {
@@ -242,7 +243,9 @@ int main(int argc, char* argv[])
             {
                 std::vector<std::string> splitEntry;
                 boost::split(splitEntry, splitVec[i], boost::is_any_of("|"), boost::token_compress_on);
-                structuredProbs[cellsMap[cellNames[i]]][mutMap[id]] = std::stod(splitEntry.back());
+                //std::cout << "splitEntry.back(): " << splitEntry.back() << " " << boost::lexical_cast<double>(splitEntry.back()) << std::endl << std::flush;
+                structuredProbs[cellsMap[cellNames[i]]][mutMap[id]] = boost::lexical_cast<double>(splitEntry.back());
+                //structuredProbs[cellsMap[cellNames[i]]][mutMap[id]] = std::stod(splitEntry.back());
                 //std::cout << "i: " << i << " cellNames[" << i << "] " << cellNames[i] << " id: " << id << " mutMap[" << id << "] " << mutMap[id] << " "  << structuredProbs[cellsMap[cellNames[i]]][mutMap[id]] << std::endl;
                 mutsSet.insert(id);
             }

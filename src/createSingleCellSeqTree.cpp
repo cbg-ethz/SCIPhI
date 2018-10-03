@@ -48,6 +48,7 @@ struct Options
     String<char> outFileMutationAssignments;
     String<char> outFileMutationAssignmentsWithOutDropOuts;
     String<char> outFileTreeStructure;
+    String<char> outFileSimpleTreeStructure;
     String<char> outFileParameters;
     String<char> pileupPrefix;
 	unsigned numSamples;
@@ -58,6 +59,8 @@ struct Options
     double clbm; // chromosome loss before mutation happend
     double clam; // chromosome loss after mutation happend
     double cpn; // fraction of mutations with copy number changes
+    unsigned numRecMut; // number of reccuring mutations
+    unsigned numLossMut; // number of mutations lost
     bool assignMutationsToLeafs;
 	unsigned seed;
 
@@ -70,6 +73,7 @@ struct Options
         clbm(0.0),
         clam(0.0),
         cpn(0.0),
+        numRecMut(0),
         assignMutationsToLeafs(true),
 		seed(42)
 	{};
@@ -92,6 +96,8 @@ parseCommandLine(Options & options, int argc, char const ** argv)
 	addOption(parser, ArgParseOption("clbm", "ChromLostBeforeMutation", "Fraction of homocygous mutations.", ArgParseArgument::DOUBLE, "cygocitycoeff"));
 	addOption(parser, ArgParseOption("clam", "ChromLosAfterMut", "The allelic drop out rate.", ArgParseArgument::DOUBLE, "DROPOUTRATE"));
 	addOption(parser, ArgParseOption("cpn", "CopyNumber", "The copy number rate.", ArgParseArgument::DOUBLE, "COPYNUMBERRATE"));
+	addOption(parser, ArgParseOption("nrm", "NumRecMutations", "Number of reccuring mutations.", ArgParseArgument::INTEGER, "NUMRECMUTS"));
+	addOption(parser, ArgParseOption("nlm", "NumLossMutations", "Number of mutations lost.", ArgParseArgument::INTEGER, "NUMLOSSMUTS"));
 	addOption(parser, ArgParseOption("mi", "MissingInformation", "Fraction of sites with no sequencing information.", ArgParseArgument::DOUBLE, "MISSINGINFORMATION"));
 	addOption(parser, ArgParseOption("s", "Seed", "Seed for random number generator.", ArgParseArgument::INTEGER, "SEED"));
 	addOption(parser, ArgParseOption("nml", "NoMutationsInLeafs", "Do not assign mutations to leafes."));
@@ -116,7 +122,9 @@ parseCommandLine(Options & options, int argc, char const ** argv)
     options.outFileMutationAssignmentsWithOutDropOuts = outFilePrefix;
     append(options.outFileMutationAssignmentsWithOutDropOuts, "_mut2sample_noDropOuts.tsv");
     options.outFileTreeStructure = outFilePrefix;
+    options.outFileSimpleTreeStructure = outFilePrefix;
     append(options.outFileTreeStructure, "_structure.dot");
+    append(options.outFileSimpleTreeStructure, "_simple_structure.dot");
     options.pileupPrefix = outFilePrefix;
     options.outFileParameters = outFilePrefix;
     append(options.outFileParameters, "_params.txt");
@@ -139,6 +147,10 @@ parseCommandLine(Options & options, int argc, char const ** argv)
         getOptionValue(options.clam, parser, "clam");
     if (isSet(parser, "cpn"))
         getOptionValue(options.cpn, parser, "cpn");
+    if (isSet(parser, "nrm"))
+        getOptionValue(options.numRecMut, parser, "nrm");
+    if (isSet(parser, "nlm"))
+        getOptionValue(options.numLossMut, parser, "nlm");
     if (isSet(parser, "mi"))
         getOptionValue(options.missingInformation, parser, "mi");
     if (isSet(parser, "nml"))
@@ -165,14 +177,6 @@ std::vector<std::pair<unsigned, unsigned>> treeStructureToChildVector(std::vecto
         }
     }
     return childVector;
-}
-
-void createTreeStructure(std::vector<unsigned> & treeStructure, 
-						 unsigned numMutations)
-{
-	treeStructure.resize(numMutations + 1, 0);		//One additional node for the root
-	for (unsigned i = 1; i < treeStructure.size(); ++i)
-		treeStructure[i] = rand() % i;
 }
 
 void createTreeStructureSampleTree(std::vector<unsigned> & treeStructure, 
@@ -205,125 +209,6 @@ void createTreeStructureSampleTree(std::vector<unsigned> & treeStructure,
     for (unsigned i = 0; i < numChildren.size(); ++i)
         assert(numChildren[i] == 2);
 }
-
-void assignSamplesToNodesMutTree(std::vector<unsigned> & sampleToNodeAssignment,
-						  std::vector<unsigned> const & treeStructure, 
-						  unsigned numSamples)
-{
-	sampleToNodeAssignment.resize(numSamples);
-    unsigned i = 0;
-	for (; i < treeStructure.size() - 1; ++i)
-		sampleToNodeAssignment[i] = i + 1;
-	for (; i < sampleToNodeAssignment.size(); ++i)
-		sampleToNodeAssignment[i] = (rand() % (treeStructure.size() - 1)) + 1;
-}
-
-
-//unsigned getSubTreeSize(std::vector<unsigned> const & treeStructure,
-//        std::vector<std::pair<unsigned, unsigned>> const & childVector,
-//        unsigned node)
-//{
-//    unsigned size = 0;
-//    while(mutationToNodeAssignment[node][mutation] != mutType)
-//    {
-//        //left node
-//        if (childVector[node].first != -1 && mutationToNodeAssignment[childVector[node].first][mutation] == 0)
-//        {
-//            node = childVector[node].first;
-//        }
-//        else if (childVector[node].second != -1 && mutationToNodeAssignment[childVector[node].second][mutation] == 0)
-//        {
-//            node = childVector[node].second;
-//        }
-//        else
-//        {
-//            ++size;
-//            node = treeStructure[node];
-//        }
-//    }
-//    return size;
-//}
-
-//struct GetSize
-//{
-//    unsigned size;
-//    unsigned startNode = UINT_MAX;
-//
-//    GetSize() : size(0) {};
-//    GetSize(unsigned startNode_) : size(0), startNode(startNode_) {};
-//
-//    bool operator()() 
-//    {
-//        ++this->size;
-//        return false;
-//    };
-//    bool operator()(unsigned currentNode, bool isLeaf)
-//    {
-//        if(!isLeaf && currentNode != this -> startNode)
-//        {
-//            ++this->size;
-//        }
-//        return false;
-//    };
-//};
-//
-//struct GetHomoNodeID
-//{
-//    unsigned nodePos = UINT_MAX;
-//    unsigned rootNode = UINT_MAX;
-//    unsigned counter = 0;
-//    unsigned id = UINT_MAX;
-//
-//    GetHomoNodeID(unsigned counter, unsigned rootNode_) :nodePos(counter), rootNode(rootNode_) {};
-//
-//    bool operator()(unsigned nodeID, bool isLeaf) 
-//    {
-//        if (!isLeaf)
-//        {
-//            if (nodePos == counter)
-//            {
-//                id = nodeID;
-//                return true;
-//            }
-//        ++this->counter;
-//        }
-//        return false;
-//    };
-//};
-//
-//
-//template <typename TType>
-//void determineHomoNodeId(std::vector<unsigned> const & treeStructure,
-//        std::vector<std::pair<unsigned, unsigned>> const & childVector,
-//        unsigned node,
-//        TType & obj)
-//{
-//    std::vector<bool> nodeVisits;
-//    nodeVisits.resize(treeStructure.size(), 0);
-//    unsigned currentNode = node;
-//    unsigned test = 0;
-//    while(!nodeVisits[node])
-//    {
-//        if (childVector[currentNode].first != UINT_MAX && !nodeVisits[childVector[currentNode].first])
-//        {
-//            currentNode = childVector[currentNode].first;
-//        }
-//        else if (childVector[currentNode].second != UINT_MAX && !nodeVisits[childVector[currentNode].second])
-//        {
-//            currentNode = childVector[currentNode].second;
-//        }
-//        else
-//        {
-//            nodeVisits[currentNode] = 1;
-//            if (obj(currentNode, childVector[currentNode].first == UINT_MAX))
-//            {
-//                break;
-//            }
-//            currentNode = treeStructure[currentNode];
-//            ++test;
-//        }
-//    }
-//}
 
 void passMutToSubTree(std::vector<std::vector<int>> & mutationToNodeAssignment,
         std::vector<unsigned> const & treeStructure,
@@ -358,33 +243,99 @@ void assignMutation(
         std::vector<std::pair<unsigned, unsigned>> const & childVector,
         unsigned node,
         unsigned mutation,
-        std::vector<std::vector<unsigned>> & heteroMutsPerNode,
+        int mutType,
+        std::vector<unsigned> & numMutsPerNode,
         Options const & options)
 {
-    int mutType = 1;
-    if (static_cast<double>(rand())/static_cast<double>(RAND_MAX) < options.clbm)
+    if (mutType != 0)
     {
-	    mutType = 3;
-    }
-    else if (static_cast<double>(rand())/static_cast<double>(RAND_MAX) < options.cpn)
-    {
-        double r = static_cast<double>(rand())/static_cast<double>(RAND_MAX);
-        int cp = 5 + std::ceil(std::log2(1.0/(1.0-r)));
-        if (static_cast<double>(rand())/static_cast<double>(RAND_MAX) >= 0.0) // change this if the mutated allele should be duplicated
+        numMutsPerNode[node]++;
+        if (static_cast<double>(rand())/static_cast<double>(RAND_MAX) < options.clbm)
         {
-            cp *= -1;
+            mutType = 3;
         }
-        mutType = cp;
+        else if (static_cast<double>(rand())/static_cast<double>(RAND_MAX) < options.cpn)
+        {
+            double r = static_cast<double>(rand())/static_cast<double>(RAND_MAX);
+            int cp = 5 + std::ceil(std::log2(1.0/(1.0-r)));
+            if (static_cast<double>(rand())/static_cast<double>(RAND_MAX) >= 0.0) // change this if the mutated allele should be duplicated
+            {
+                cp *= -1;
+            }
+            mutType = cp;
+        }
     }
 
     passMutToSubTree(mutationToNodeAssignment, treeStructure, childVector, node, mutation, mutType);
+}
 
+// In order to test the violations of the infinite site assumption we insert some mutations twice
+// This function checks if they are in different lineages
+bool recMutInDifferentLineages(unsigned firstPlace,
+                                unsigned secondPlace,
+                                unsigned mut,
+                                std::vector<unsigned> const & treeStructure)
+{
+    int firstIndex = firstPlace;
+    while(firstIndex != -1)
+    {
+        if (firstIndex == secondPlace)
+        {
+            return false;
+        }
+        firstIndex = treeStructure[firstIndex];
+    }
+    int secondIndex = secondPlace;
+    while(secondIndex != -1)
+    {
+        if (secondIndex == firstPlace)
+        {
+            return false;
+        }
+        secondIndex = treeStructure[secondIndex];
+    }
+
+    if (treeStructure[firstPlace] == treeStructure[secondPlace])
+    {
+        return false;
+    }
+    return true;
+    
+}
+bool lossInSameLineage(unsigned firstPlace,
+                                unsigned secondPlace,
+                                unsigned mut,
+                                std::vector<unsigned> const & treeStructure)
+{
+    if ( (firstPlace == secondPlace) || (treeStructure[secondPlace] == firstPlace) )
+    {
+        return false;
+    }
+    
+    while(secondPlace != -1)
+    {
+        if (secondPlace == firstPlace)
+        {
+            return true;
+        }
+        secondPlace = treeStructure[secondPlace];
+    }
+
+    return false;
+}
+
+unsigned getRandomNodeId(std::vector<unsigned> const & treeStructure, Options const & options)
+{
+    if (options.assignMutationsToLeafs)
+    {
+        return rand() % (treeStructure.size());
+    }
+    return rand() % (options.numSamples - 1);
 }
 
 std::vector<std::vector<int>> assignMutationToNodesSampleTree(std::vector<unsigned> const & treeStructure, 
         std::vector<std::pair<unsigned, unsigned>> const & childVector, 
-        std::vector<unsigned> const & numPlacements,
-        unsigned sumNumPlacemanets,
+        std::vector<unsigned> & numMutsPerNode,
         Options const & options)
 {
 	std::vector<std::vector<int>> mutationToNodeAssignment;
@@ -393,45 +344,43 @@ std::vector<std::vector<int>> assignMutationToNodesSampleTree(std::vector<unsign
     {
         mutationToNodeAssignment[i].resize(options.numMutations, 0);
     }
-    std::vector<std::vector<unsigned>> heteroMutsPerNode;
-    heteroMutsPerNode.resize(mutationToNodeAssignment.size());
 
     unsigned i = 0;
-    if (options.assignMutationsToLeafs)
+    int mutType = 1;
+
+    for (; i < options.numMutations; ++i)
     {
-        for (; i < treeStructure.size() && i < options.numMutations; ++i)
+        unsigned nodeId = getRandomNodeId(treeStructure, options);
+        if (options.numRecMut > i + 1)
         {
-            //assignMutation(mutationToNodeAssignment, treeStructure, childVector, i, i, numPlacements, sumNumPlacemanets, options);
-            assignMutation(mutationToNodeAssignment, treeStructure, childVector, i, i, heteroMutsPerNode, options);
+            unsigned nodeIdTwo = getRandomNodeId(treeStructure, options);
+            while (!recMutInDifferentLineages(nodeId, nodeIdTwo, i, treeStructure))
+            {
+                nodeId = getRandomNodeId(treeStructure, options);
+                nodeIdTwo = getRandomNodeId(treeStructure, options);
+            }
+            std::cout << "rec: " << nodeId << " " << nodeIdTwo << std::endl;
+            assignMutation(mutationToNodeAssignment, treeStructure, childVector, nodeId, i, mutType, numMutsPerNode, options);
+            assignMutation(mutationToNodeAssignment, treeStructure, childVector, nodeIdTwo, i, mutType, numMutsPerNode, options);
         }
-        for (; i < options.numMutations; ++i)
+        else if (options.numRecMut + options.numLossMut > i + 1)
         {
-            //assignMutation(mutationToNodeAssignment, treeStructure, childVector, rand() % (treeStructure.size()), i, numPlacements, sumNumPlacemanets, options);
-            assignMutation(mutationToNodeAssignment, treeStructure, childVector, rand() % (treeStructure.size()), i, heteroMutsPerNode, options);
+            unsigned nodeIdTwo = getRandomNodeId(treeStructure, options);
+            while (!lossInSameLineage(nodeId, nodeIdTwo, i, treeStructure))
+            {
+                nodeId = getRandomNodeId(treeStructure, options);
+                nodeIdTwo = getRandomNodeId(treeStructure, options);
+            }
+            std::cout << "loss: " << nodeId << " " << nodeIdTwo << std::endl;
+            assignMutation(mutationToNodeAssignment, treeStructure, childVector, nodeId, i, mutType, numMutsPerNode, options);
+            assignMutation(mutationToNodeAssignment, treeStructure, childVector, nodeIdTwo, i, 0, numMutsPerNode, options);
         }
-    }
-    else
-    {
-        for (; i < options.numSamples - 1 && i < options.numMutations; ++i)
+        else
         {
-            //assignMutation(mutationToNodeAssignment, treeStructure, childVector, i, i, numPlacements, sumNumPlacemanets, options);
-            assignMutation(mutationToNodeAssignment, treeStructure, childVector, i, i, heteroMutsPerNode,options);
-        }
-        for (; i < options.numMutations; ++i)
-        {
-            //assignMutation(mutationToNodeAssignment, treeStructure, childVector, rand() % (options.numSamples - 1), i, numPlacements, sumNumPlacemanets, options);
-            assignMutation(mutationToNodeAssignment, treeStructure, childVector, rand() % (options.numSamples - 1), i, heteroMutsPerNode, options);
+            assignMutation(mutationToNodeAssignment, treeStructure, childVector, nodeId, i, mutType, numMutsPerNode, options);
         }
     }
 
-    //makeSubTreeHomozygous(
-    //    mutationToNodeAssignment,
-    //    treeStructure,
-    //    childVector,
-    //    heteroMutsPerNode,
-    //    numPlacements,
-    //    sumNumPlacemanets,
-    //    options);
     return mutationToNodeAssignment;
 }
 
@@ -600,30 +549,6 @@ void writeMutationAssigmentsSampleTree(std::vector<std::vector<int>> const & mut
     outFile.close();
 }
 
-void writeTree(std::vector<unsigned> sampleToNodeAssignment,
-			   std::vector<unsigned> & treeStructure,
-			   Options const & options)
-{
-    std::ofstream outFile;
-    outFile.open(toCString(options.outFileTreeStructure));
-	outFile << "digraph mutationTree{" << std::endl;
-    outFile << "\trankdir = BT;" << std::endl;
-	for (unsigned int i = 1; i < treeStructure.size(); ++i)
-	{
-		outFile << "\t" << i << " -> " << treeStructure[i] << "[dir=back];" << std::endl;
-	}
-	for (unsigned int i = 0; i < sampleToNodeAssignment.size(); ++i)
-	{
-		outFile << "\tS" << i << " [shape=box];" << std::endl;
-	}
-	for (unsigned int i = 0; i < sampleToNodeAssignment.size(); ++i)
-	{
-		outFile << "\tS" << i << " -> " << sampleToNodeAssignment[i] << "[dir=none];" << std::endl;
-	}
-    outFile << "}" << std::endl;
-    outFile.close();
-}
-
 void sampleMutationPositionsOnGenome(std::map<unsigned, unsigned> & positionMap,
                                     std::vector<unsigned> & positionVec,
                                     Options const & options)
@@ -647,6 +572,51 @@ void sampleMutationPositionsOnGenome(std::map<unsigned, unsigned> & positionMap,
     }
 }
 
+unsigned newParent(std::vector<unsigned> const & treeStructure,
+        std::vector<unsigned> const & numMutsPerNode,
+        unsigned node)
+{
+    unsigned currentParentNode = treeStructure[node];
+    while(treeStructure[currentParentNode] != -1 && numMutsPerNode[currentParentNode] == 0)
+    {
+       currentParentNode = treeStructure[currentParentNode];
+    }
+    return currentParentNode;
+}
+
+std::vector<unsigned> 
+simplifyTree(std::vector<unsigned> const & treeStructure,
+        std::vector<unsigned> const & numMutsPerNode)
+{
+    std::vector<unsigned> simpleTree = treeStructure;
+    for (unsigned i = 1; i < treeStructure.size(); ++i)
+    {
+        simpleTree[i] = newParent(treeStructure, numMutsPerNode, i);
+    }
+    return simpleTree;
+}
+
+void writeSimpleTreeSampleTree(
+			   std::vector<unsigned> const & simpleTreeStructure,
+               std::vector<unsigned> const & numMutsPerNode,
+			   Options const & options)
+{
+    std::ofstream outFile;
+    outFile.open(toCString(options.outFileSimpleTreeStructure));
+	outFile << "digraph mutationTree{" << std::endl;
+    outFile << "rankdir = BT;" << std::endl;
+    unsigned i = 1;
+	for (; i < 2 * options.numSamples - 1; ++i)
+	{
+        if(numMutsPerNode[i] > 0 || i > options.numSamples - 2)
+        {
+            outFile << i << " -> " << simpleTreeStructure[i] << "[dir=none];" << std::endl;
+        }
+	}
+    outFile << "}" << std::endl;
+    outFile.close();
+
+}
 void writeTreeSampleTree(std::vector<std::vector<int>> const & mutationToNodeAssignment,
 			   std::vector<unsigned> const & treeStructure,
 			   std::vector<unsigned> const & positionVec,
@@ -694,48 +664,6 @@ void writeTreeSampleTree(std::vector<std::vector<int>> const & mutationToNodeAss
     outFile.close();
 }
 
-std::vector<unsigned> getNumPlacements(std::vector<unsigned> const & treeStructure,std::vector<std::pair<unsigned, unsigned>> const & childVector)
-{
-    std::vector<bool> nodeVisits;
-    nodeVisits.resize(treeStructure.size(), 0);
-    unsigned currentNode = 0;
-
-    std::vector<unsigned> numPlacements;
-    numPlacements.resize(treeStructure.size(), 0);
-
-    
-    while(!nodeVisits[0])
-    {
-        if (childVector[currentNode].first != UINT_MAX && !nodeVisits[childVector[currentNode].first])
-        {
-            currentNode = childVector[currentNode].first;
-        }
-        else if (childVector[currentNode].second != UINT_MAX && !nodeVisits[childVector[currentNode].second])
-        {
-            currentNode = childVector[currentNode].second;
-        }
-        else
-        {
-            if (childVector[currentNode].first != UINT_MAX && childVector[currentNode].second != UINT_MAX)
-            {
-                numPlacements[currentNode] = numPlacements[childVector[currentNode].first] + numPlacements[childVector[currentNode].second];
-                if (childVector[childVector[currentNode].first].first != UINT_MAX)
-                {
-                    ++numPlacements[currentNode];
-                }
-                if (childVector[childVector[currentNode].second].first != UINT_MAX)
-                {
-                    ++numPlacements[currentNode];
-                }
-            }
-            nodeVisits[currentNode] = 1;
-            currentNode = treeStructure[currentNode];
-        }
-    }
-    return numPlacements;
-}
-
-
 int main(int argc, const char* argv[]){
 
     //---------------------------------------------------------------
@@ -757,19 +685,13 @@ int main(int argc, const char* argv[]){
     srand(options.seed + 2); // srand(1) is reserved
 
 	std::vector<unsigned> treeStructure;
-	
+
     createTreeStructureSampleTree(treeStructure, options.numSamples);
 
     std::vector<std::pair<unsigned, unsigned>> childVector = treeStructureToChildVector(treeStructure);
-    
-    std::vector<unsigned> numPlacements = getNumPlacements(treeStructure, childVector);
-    unsigned sumNumPlacemanets = 0;
-    for (unsigned i = 0; i < numPlacements.size(); ++i)
-    {
-        sumNumPlacemanets += numPlacements[i];
-    }
-
-    std::vector<std::vector<int>> mutationToNodeAssignment = assignMutationToNodesSampleTree(treeStructure, childVector, numPlacements, sumNumPlacemanets, options);
+   
+    std::vector<unsigned> numMutsPerNode(2 * options.numSamples - 1, 0);
+    std::vector<std::vector<int>> mutationToNodeAssignment = assignMutationToNodesSampleTree(treeStructure, childVector, numMutsPerNode, options);
 
     std::vector<std::vector<int>> mutationToSample = extractMutationToSampleAssigments(mutationToNodeAssignment, childVector, options);
 
@@ -790,6 +712,10 @@ int main(int argc, const char* argv[]){
               treeStructure,
               positionVec,
               options);
+
+    std::vector<unsigned> simpleTreeStructure = simplifyTree(treeStructure,numMutsPerNode);
+
+    writeSimpleTreeSampleTree(simpleTreeStructure, numMutsPerNode, options);
 
 	return 0;	
 }
