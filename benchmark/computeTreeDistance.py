@@ -69,14 +69,15 @@ inGT.seek(0)
 for line in inGT:
     if "->" in line:
         lineSplit = re.split("\t | |- |> |\[", line)
+        #print(lineSplit)
         parentVecGT[int(lineSplit[0])] = int(lineSplit[2])
         if childVecGT[int(lineSplit[2])][0] == -1:
             childVecGT[int(lineSplit[2])][0] = int(lineSplit[0])
         else:
             childVecGT[int(lineSplit[2])][1] = int(lineSplit[0])
-    elif ".bam" in line:
-        lineSplit = re.split(" |\"|\.", line)
-        nameVecGT[int(lineSplit[0])] = str(int(lineSplit[2]) - int((numNodes - 1)/2))
+        sampleId = int(lineSplit[0]) - int((numNodes)/2)
+        if sampleId >= 0:
+            nameVecGT[int(lineSplit[0])] = str(sampleId)
 #print(nameVecGT)
 #print(parentVecGT)
 #print(childVecGT)
