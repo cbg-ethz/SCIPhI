@@ -40,14 +40,13 @@ for line in inFile:
         print(line.strip())
         continue
 
-    if "shape=box,label=\"" in line:
-        line = line.replace('.bam','')
-        lineSplit = line.strip().split(' ')
-        sameRank.append(line.split("[")[0])
+    if "shape=box," in line:
+        lineSplit = line.strip().split('.bam')
+        sameRank.append(lineSplit[0].split("[")[0])
         print(lineSplit[0] + "\";fontsize=30;];")
 
     elif "label=\"" in line:
-        lineSplit = line.strip().split(":")
+        lineSplit = line.strip().split("\\n")
         if (math.sqrt(len(lineSplit))/10) > 0.5:
             print(line.split("[")[0] + "[label=\"" + str(len(lineSplit)-1) + "\";fontcolor=\"white\";shape=\"circle\"; width=" + str(math.sqrt(len(lineSplit)-1)/8) + ";fillcolor=\"#4682B4\";style=filled;fontsize=30;];")
         else:
@@ -56,7 +55,7 @@ for line in inFile:
 
 
     else:
-        print("SHIT")
+        print("SHOOOT")
 
     
 
