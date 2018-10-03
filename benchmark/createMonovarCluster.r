@@ -24,17 +24,24 @@ outputName <- args[2]
 
 library(ComplexHeatmap)
 library(circlize)
+library(dplyr)
 df <- read.table(inputName, header = TRUE)
-monovarDist <- data.matrix(df[,-1])
+df <- df %>% dplyr::select_if(function(X) sum(!is.na(X))>=1)
+df = data.matrix(df[,-1])
+df[df=="NaN"]<-0.5
+monovarDist <- df
+
+
 ht2 = Heatmap(monovarDist,
               name = "Pm",
               column_title = "",
               col = colorRampPalette(c("white", "steelblue"))(100),
               show_row_dend = FALSE,
-              #show_column_dend = FALSE,
-              #show_column_names = FALSE,
               column_names_gp = gpar(fontsize = 20),
+              show_column_dend = TRUE,
+              show_column_names = TRUE,
               heatmap_legend_param = list(title_gp = gpar(fontsize = 20)))
+
 pdf(outputName)
 draw(ht2)
 dev.off()
