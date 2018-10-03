@@ -55,8 +55,8 @@ resultPlot <- ggplot(meltData, aes(X1,X2, fill=value)) +
         legend.box='horizontal',
         legend.justification = c(0, 0.5),
         plot.background = element_rect(fill = "transparent",colour = NA),
-        axis.text.x = element_text(angle = 45, hjust = 0.5, vjust= 0.5))
-        #axis.title.x=element_blank(),
+        axis.text.x = element_text(angle = 45, hjust = 0.5, vjust= 0.5),
+        axis.title.x=element_blank(),
         #axis.text.x=element_blank(),
-        #axis.ticks.x=element_blank())
+        axis.ticks.x=element_blank())
 ggsave(outputName)
