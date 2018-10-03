@@ -24,12 +24,11 @@ outFileName = sys.argv[1]
 files = sys.argv[2:]
 
 outFile = open(outFileName, 'w')
-#outFile.write("cells\tmutations\tdrop\tclbm\tclam\trun\tprior\ttool\tTP\tTN\tFP\tFN\trecall\tprecision\tf1\n") 
-outFile.write("cells\tmutations\tdrop\tzyg\tcpn\trun\tprior\ttool\tTP\tTN\tFP\tFN\trecall\tprecision\tf1\n") 
+outFile.write("cells\tmutations\tdrop\tzyg\tcpn\tvio\trun\tprior\ttool\tTP\tTN\tFP\tFN\trecall\tprecision\tf1\n") 
 if 'sciphi' in files[0]:
-    baseDir = len(files[0].strip().split("/")) - 10
+    baseDir = len(files[0].strip().split("/")) - 11
 else:
-    baseDir = len(files[0].strip().split("/")) - 8
+    baseDir = len(files[0].strip().split("/")) - 9
 
 #print(files)
 #print(baseDir)
@@ -41,9 +40,10 @@ for file in files:
     drop = fileSplit[baseDir + 2].split("_")[1]
     clbm = fileSplit[baseDir + 3].split("_")[1]
     cpn = fileSplit[baseDir + 4].split("_")[1]
-    run = fileSplit[baseDir + 5].split("_")[1]
-    prior = fileSplit[baseDir + 6].split("_")[1]
-    tool = fileSplit[baseDir + 7]
+    vio = fileSplit[baseDir + 5].split("_")[1]
+    run = fileSplit[baseDir + 6].split("_")[1]
+    prior = fileSplit[baseDir + 7].split("_")[1]
+    tool = fileSplit[baseDir + 8]
     if tool == "sciphi":
         tool = "SCIPhy"
     if tool == "monovar":
@@ -53,6 +53,7 @@ for file in files:
     out.append(drop)
     out.append(clbm)
     out.append(cpn)
+    out.append(vio)
     out.append(run)
     out.append(prior)
     out.append(tool)
