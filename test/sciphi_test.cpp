@@ -541,7 +541,7 @@ BOOST_AUTO_TEST_CASE( read_data_apply_filter_across_cells )
     config.minCoverage = 5;
     config.minFreq = 0.25;
     config.minSupport = 2;
-    config.numMinCoverageAcrossCells = 2;
+    config.minNumCellsPassFilter = 2;
 
     std::vector<string> testLine= {"chr", "13", "REF", "4", "..AA", "IIII","2", "AC", "II","5", ".-3AACAAT.", "IIIII"};
     std::vector<std::array<unsigned, 5>> counts;
