@@ -176,17 +176,6 @@ def writeMutType(outFile, refNuc, mutNuc, alleleAffacted, cov):
 
 def writeWildType(outFile, refNuc, cov):
     writeMutType(outFile, refNuc, refNuc, '0', cov)
-    #nucs = ""
-    ##print(cov)
-    #for i in range(0, cov):
-    #    if random.random() < mdaEr:
-    #        alt = indexToChar(random.randint(0,3))
-    #        while (alt == refNuc):
-    #            alt = indexToChar(random.randint(0,3))
-    #        nucs += getStrand(alt)
-    #    else:
-    #        nucs += getStrand('.')
-    #outFile.write("\t" + nucs)
 
 def writeQuals(outFile, localCov):
     outFile.write("\t" + "I" * localCov)
