@@ -26,6 +26,7 @@ outfile = open(sys.argv[2], 'w')
 outfileNoNAs = open(sys.argv[2].replace('.bin', '_noNAs.bin'), 'w')
 
 outfile.write("#chrom\tpos\t")
+outfileNoNAs.write("#chrom\tpos\t")
 for line in infile:
     if line.startswith("#CHROM"):
         numFields = len(line.strip().split("\t"))
