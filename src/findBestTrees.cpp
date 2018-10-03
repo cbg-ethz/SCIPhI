@@ -88,22 +88,25 @@ int readParameters(Config<TTreeType> & config, int argc, char* argv[]){
 		(",r", boost::program_options::value<decltype(config.reps)>(&config.reps), "Number of repetitions. [1]")
 		(",l", boost::program_options::value<decltype(config.loops)>(&config.loops), "Maximal number of iterations per repetition. [1000000]")
 		("lz", boost::program_options::value<decltype(config.learnZygocity)>(&config.learnZygocity), "Set to 1 if zygocity should be learned. [0]")
+		("zyg", boost::program_options::value<double>(&std::get<0>(config.params[Config<TTreeType>::nu])), "Zygosity rate. [0]")
 		("ls", boost::program_options::value<decltype(config.sampleLoops)>(&config.sampleLoops), "Number of sample iterations. [100000]")
 		("pr", boost::program_options::value<decltype(config.priorMutationRate)>(&config.priorMutationRate), "Prior mutation rate [0.0001].")
 		("uniq,u", boost::program_options::value<decltype(config.uniqTreshold)>(&config.uniqTreshold), "Filter mutations showing up to this number of cells showing the mutations. [0]")
 		(",e", boost::program_options::value<decltype(config.paramsEstimateRate)>(&config.paramsEstimateRate), "Paramter estimation rate, i.e. the frection of loops used to estimate the different parameters. [0.2]")
+        ("ur",boost::program_options::value<double>(&std::get<1>(config.dataUsageRate)), "Data usage rate increment steps. [0.1]")
 		("seed", boost::program_options::value<decltype(config.fixedSeed)>(&config.fixedSeed), "Seed for the random number generator. [42]")
 		(",t", boost::program_options::value<decltype(config.scoreType)>(&config.scoreType), "Tree score type [m (max), s (sum)]. [s]")
 		("wildOverDis", boost::program_options::value<double>(&std::get<0>(config.params[0])), "Overdispersion for wild type. [100]")
 		("mutationOverDis", boost::program_options::value<double>(&std::get<0>(config.params[1])), "Overdispersion for mutant type. [2]")
 		("wildMean", boost::program_options::value<double>(&std::get<0>(config.params[2])), "Mean error rate. [0.001]")
 		("md", boost::program_options::value<decltype(config.minDist)>(&config.minDist), "Window size for maximum number of allowed mutations. [10]")
+		("sub", boost::program_options::value<decltype(config.sub)>(&config.sub), "PCR substitution rate. [0]")
 		("mmw", boost::program_options::value<decltype(config.maxMutPerWindow)>(&config.maxMutPerWindow), "Maximum number of mutations allowed per window. [1]")
 		("cwm", boost::program_options::value<decltype(config.numCellWithMutationMin)>(&config.numCellWithMutationMin), "Number of cells requiered to have a mutation in order to be called. [1]")
 		("ncf", boost::program_options::value<decltype(config.normalCellFilter)>(&config.normalCellFilter), "Normal cell filter. Currently there are three options: (0) Do not use the normal cells for filtering; (1) use a simple filtering scheme excluding mutations if the probablity of being mutated is higher than not being mutated for any cell independently; (2) filter mutations where the probility that at least one cell is mutated is higher than no cell is mutated. Note that in contrast to (1) the cells are not independent and cells with no alternative support need to be explained via dropout events. [1]")
 		("mc", boost::program_options::value<decltype(config.minCoverage)>(&config.minCoverage), "Minimum coverage required per cell. [1]")
 		("mcc", boost::program_options::value<decltype(config.minCoverageAcrossCells)>(&config.minCoverageAcrossCells), "Minimum coverage required by at least x cells which support the alternative. [0]")
-		("nmc", boost::program_options::value<decltype(config.numMinCoverageAcrossCells)>(&config.numMinCoverageAcrossCells), "Number of cells which need a minimum coverage which support the alternative.")
+		("mnp", boost::program_options::value<decltype(config.minNumCellsPassFilter)>(&config.minNumCellsPassFilter), "Number of cells which need to pass the filters.")
 		("ms", boost::program_options::value<decltype(config.minSupport)>(&config.minSupport), "Minimum number of reads required to support the alternative. [0]")
 		("mf", boost::program_options::value<decltype(config.minFreq)>(&config.minFreq), "Minimum required frequency of reads supporting the alternative per cell. [0]")
 		("mff", boost::program_options::value<decltype(config.meanFilter)>(&config.meanFilter), "Mean of acceptable variant allele frequency across all cells for a specific locus. [0.25]")
@@ -119,7 +122,8 @@ int readParameters(Config<TTreeType> & config, int argc, char* argv[]){
    // hidden options, i.e., input files
 	boost::program_options::options_description hidden("Hidden options");
 	hidden.add_options()
-		("input-file", boost::program_options::value<std::string>()->required(), "input files");
+		("input-file", boost::program_options::value<std::string>()->required(), "input files")
+		("smt", boost::program_options::value<decltype(config.mutToMaxName)>(&config.mutToMaxName), "Store to save mutations distribution of MAP tree.");
 
 	boost::program_options::options_description cmdline_options;
 	cmdline_options.add(generic).add(parseConfig).add(hidden);
@@ -167,10 +171,14 @@ int readParameters(Config<TTreeType> & config, int argc, char* argv[]){
     }
         
     config.inFileName = global_options["input-file"].as<std::string>();
+    config.bestName = config.outFilePrefix + "/best_index/";
 
     std::get<1>(config.params[0]) = std::get<0>(config.params[0]);
     std::get<1>(config.params[1]) = std::get<0>(config.params[1]);
     std::get<1>(config.params[2]) = std::get<0>(config.params[2]);
+    std::get<1>(config.params[3]) = std::get<0>(config.params[3]);
+    std::get<1>(config.params[4]) = std::get<0>(config.params[4]);
+    std::get<1>(config.params[5]) = std::get<0>(config.params[5]);
 	
     return 0;
 }
@@ -180,6 +188,11 @@ int main(int argc, char* argv[])
     typedef Config<SampleTree> TConfig;
 	TConfig config{};
 	
+    // read the command line arguments
+    std::cout << "Reading the config file: ... " << std::flush;
+	readParameters(config, argc, argv);
+    std::cout << "done!" << std::endl;
+
     /* initialize the random number generator, either with a user defined seed, or a random number */
 	if(config.fixedSeed == static_cast<unsigned>(-1)){
 		initRand();                                  // initialize random number generator
@@ -188,10 +201,6 @@ int main(int argc, char* argv[])
 		srand(config.fixedSeed);
 	}
 
-    // read the command line arguments
-    std::cout << "Reading the config file: ... " << std::flush;
-	readParameters(config, argc, argv);
-    std::cout << "done!" << std::endl;
 
     // extract the mutation data from the files
     if (config.loadName == "" )
@@ -208,12 +217,19 @@ int main(int argc, char* argv[])
         readGraph(config);
         readNucInfo(config);
         std::cout << "done!" << std::endl;
-
     }
 
     // After the data is read the log scores need to be computed.
 	computeLogScoresOP(config);
     config.paramsCounter.resize(0);
+
+    if (config.mutToMaxName != "")
+    {
+        config.updateContainers(0);
+        writeMutToMaxTree(config);
+        return 0;
+    }
+    
 
 	std::vector<typename TConfig::TGraph> optimalTrees;         // list of all optimal trees (as ancestor matrices)
     std::array<std::tuple<double, double>, 6> optimalParams;    // The optimal parameters
@@ -230,15 +246,10 @@ int main(int argc, char* argv[])
     writeParameters(config, config.outFilePrefix + ".params.txt");
     writeVCF(config, config.outFilePrefix + ".vcf");
     
+    writeFinalIndex(config);
+
     typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::bidirectionalS, Vertex<SimpleTree>> TGraph;
-    // the following can be included for debugging purposes
-    //TGraph newTree = simplifyTree(config);
-    //std::ofstream ofs(config.outFilePrefix + "_last.gv");
-    //write_graphviz(ofs, newTree, my_label_writer(newTree, config.indexToPosition, config.cellNames));
-
     config.getTree() = optimalTrees[0];
-    writeIndex(config);
-
     config.params = optimalParams;
     computeLogScoresOP(config);
     TGraph newTreeBest = simplifyTree(config);
