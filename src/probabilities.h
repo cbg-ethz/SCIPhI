@@ -156,7 +156,7 @@ addLogProbWeight(double x, double y, double nu) // = (1.0 - nu) * x + nu * y
 
 template <typename TTreeType>
 double
-computeWildLogScore(Config<TTreeType> const & config, double altCount, double coverage)
+computeRawWildLogScore(Config<TTreeType> const & config, double altCount, double coverage)
 {
     return logBetaBinPDF(altCount, 
         coverage, 
@@ -166,7 +166,7 @@ computeWildLogScore(Config<TTreeType> const & config, double altCount, double co
 
 template <typename TTreeType>
 double
-computeWildLogScoreOP(Config<TTreeType> const & config, double altCount, double coverage)
+computeRawWildLogScoreOP(Config<TTreeType> const & config, double altCount, double coverage)
 {
     return logBetaBinPDFOP(altCount, 
         coverage, 
@@ -194,6 +194,15 @@ computeRawMutLogScoreOP(Config<TTreeType> & config, double altCount, double cove
                 config.getParam(Config<TTreeType>::mutationOverDis));
 }
 
+template <typename TTreeType>
+double
+computeWildLogScoreOP(Config<TTreeType> & config, double altCount, double coverage)
+{
+    double logWild = computeRawWildLogScoreOP(config, altCount, coverage);
+    double logMut = computeRawMutLogScoreOP(config, altCount, coverage);
+    return addLogProbWeight(logWild, logMut, config.sub);
+}
+
 
 template <typename TTreeType>
 double
@@ -212,7 +221,7 @@ computeHeteroLogScoreOP(Config<TTreeType> & config, double altCount, double cove
 {
     double mu = config.getParam(Config<TTreeType>::mu);
     double oneMinusMu = 1.0 - mu;
-    double logHomo = addLogProbWeight(computeWildLogScoreOP(config, altCount, coverage), computeHomoLogScoreOP(config, altCount,  coverage), 0.5);
+    double logHomo = addLogProbWeight(computeRawWildLogScoreOP(config, altCount, coverage), computeHomoLogScoreOP(config, altCount,  coverage), 0.5);
     return addLogProbWeight(computeRawMutLogScoreOP(config, altCount, coverage), logHomo, oneMinusMu);
 }
 
@@ -223,6 +232,7 @@ void computeWildLogScoresOP(Config<TTreeType> & config)
 	{
 		for (unsigned int j = 0; j < config.getLogScores()[0].size(); ++j)
 		{
+            //std::get<0>(config.getLogScores()[i][j]) = computeRawWildLogScoreOP(config, std::get<1>(config.getData()[i][j]), std::get<0>(config.getData()[i][j]));
             std::get<0>(config.getLogScores()[i][j]) = computeWildLogScoreOP(config, std::get<1>(config.getData()[i][j]), std::get<0>(config.getData()[i][j]));
 		}
 	}
@@ -235,6 +245,7 @@ void computeLogScoresOP(Config<TTreeType> & config)
 	{
 		for (unsigned int j = 0; j < config.getLogScores().numMuts(); ++j)
 		{
+            //config.getLogScores().wtScore(i, j) = computeRawWildLogScoreOP(config, std::get<1>(config.getData()[i][j]), std::get<0>(config.getData()[i][j]));
             config.getLogScores().wtScore(i, j) = computeWildLogScoreOP(config, std::get<1>(config.getData()[i][j]), std::get<0>(config.getData()[i][j]));
             config.getLogScores().hetScore(i, j) = computeHeteroLogScoreOP(config, std::get<1>(config.getData()[i][j]), std::get<0>(config.getData()[i][j]));
             config.getLogScores().homScore(i, j) = computeHomoLogScoreOP(config, std::get<1>(config.getData()[i][j]), std::get<0>(config.getData()[i][j]));

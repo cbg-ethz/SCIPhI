@@ -41,12 +41,12 @@ void getGraphVizFileContentNames(std::string & output,
 std::string getBestAttachmentString(std::vector<std::vector<bool>> const & ancMatrix, 
 									Config<MutationTree> & config,
 									std::vector<std::string> geneNames);
-bool** attachmentPoints(std::vector<std::vector<bool>> const & ancMatrix, 
-						Config<MutationTree> const & config);
-void printSampleTrees(std::vector<int*> list, int n, std::string fileName);
-void printGraphVizFile(int* parents, int n);
-void printScoreKimSimonTree(Config<MutationTree> & config,
-							char scoreType);
+//bool** attachmentPoints(std::vector<std::vector<bool>> const & ancMatrix, 
+//						Config<MutationTree> const & config);
+//void printSampleTrees(std::vector<int*> list, int n, std::string fileName);
+//void printGraphVizFile(int* parents, int n);
+//void printScoreKimSimonTree(Config<MutationTree> & config,
+//							char scoreType);
 
 inline
 void 
@@ -168,7 +168,6 @@ writeVCFMultiEntry(std::ofstream & outFile,
         Config<SampleTree> const & config,
          std::vector<unsigned> & entries)
 {
-    std::cout << "test3: " << entries.size() << std::endl;
     for (unsigned alt = 0; alt < entries.size(); ++alt)
     {
         // chrom
@@ -268,17 +267,17 @@ writeVCF(Config<SampleTree> const & config,
 
 void writeTree(Config<SampleTree> const & config)
 {
-    std::ofstream ofs(config.saveName + "/tree.gv");
+    std::ofstream ofs(config.bestName + "/tree.gv");
     write_graphviz(ofs, config.getTree(), my_label_writer_complete(config.getTree()));
     ofs.close();
 }
 
 void writeNucInfo(Config<SampleTree> const & config)
 {
-    string makeDir = "mkdir -p " + config.saveName;
+    string makeDir = "mkdir -p " + config.bestName;
     std::system(makeDir.c_str());
     std::ofstream outFile;
-    outFile.open(config.saveName + "/nuc.tsv");
+    outFile.open(config.bestName + "/nuc.tsv");
     
     outFile << "=numSamples=" << "\n";
     outFile << config.getNumSamples() << "\n";
@@ -344,11 +343,44 @@ void writeNucInfo(Config<SampleTree> const & config)
 
 void writeIndex(Config<SampleTree> const & config)
 {
-    if (config.saveName != "")
+    if (config.bestName != "")
     {
-        writeTree(config);
         writeNucInfo(config);
+        writeTree(config);
     }
+}
+
+void writeFinalIndex(Config<SampleTree> & config)
+{
+    config.bestName = config.saveName;
+    writeIndex(config);
+}
+
+template <typename TTreeType>
+void writeMutToMaxTree(Config<TTreeType>  & config)
+{
+    typename Config<TTreeType>::TAttachmentScores::TAttachmentScore scoreSum;
+    typename Config<TTreeType>::TAttachmentScores & attachmentScores = config.getTmpAttachmentScore();
+
+    std::ofstream outFile;
+    outFile.open(config.mutToMaxName);
+
+    for (unsigned i = 0; i < config.getNumMutations(); ++i)
+    {
+        double score = getBestAttachmentScore(config, i);
+        
+        scoreSum.setMinusInfinity();
+        for (unsigned i = 0; i < attachmentScores.size(); ++i)
+        {
+            scoreSum.addInRealSpace(attachmentScores[i]);
+        }
+        for (unsigned i = 0; i < attachmentScores.size(); ++i)
+        {
+            outFile << exp(attachmentScores[i].finalScore() - scoreSum.finalScore()) << "\t";
+        }
+        outFile << std::endl;
+    }
+    outFile.close();
 }
 
 

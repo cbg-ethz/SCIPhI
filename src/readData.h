@@ -275,7 +275,7 @@ bool applyFilterAcrossCells(std::vector<std::array<unsigned, 5>> & counts,
                 passSuppFilter(counts[i][nucId], config.minSupport))
         {
             ++numCellsAboveThresh;
-            if(numCellsAboveThresh >= config.numMinCoverageAcrossCells)
+            if(numCellsAboveThresh >= config.minNumCellsPassFilter)
             {
                 return true;
             }
@@ -527,7 +527,7 @@ bool mustH0Win(double & logH1Max, double logH1Temp, double logNumCells, double l
     return false;
 }
 
-bool isInRange(unsigned minDist,
+bool isInRange(int minDist,
         std::string const & currentChrom,
         std::string const & nextChrom,
         int currentPos,
@@ -546,7 +546,7 @@ std::vector<unsigned> getProximity(Config<TTreeType> & config, TData const & dat
     std::vector<unsigned> proximity(data.size(), 0);
     for (unsigned i = 0; i < data.size(); ++i)
     {
-        unsigned l = i;
+        int l = i;
         while (l > 0)
         {
             --l;
@@ -564,7 +564,7 @@ std::vector<unsigned> getProximity(Config<TTreeType> & config, TData const & dat
             }
         }
         unsigned r = i;
-        while (r > 0)
+        while (r + 1 < data.size())
         {
             ++r;
             if (isInRange(config.minDist,
@@ -584,22 +584,39 @@ std::vector<unsigned> getProximity(Config<TTreeType> & config, TData const & dat
     return proximity;
 }
 
+template <typename TEntry>
+void randomizeMutPositions(std::vector<TEntry> & data)
+{
+    for (size_t i = 0; i < data.size(); ++i)
+    {
+        swap(data[i], data[std::rand() % data.size()]);
+    }
+}
+
 template <typename TTreeType, typename TData>
 void insertData(Config<TTreeType> & config, TData const & data)
 {
     std::string currentChrom = "";
     std::vector<unsigned> proximity = getProximity(config, data);
 
+    TData dataFiltered;
+
     for (size_t i = 0; i < data.size(); ++i)
     {
         if (proximity[i] < config.maxMutPerWindow)
         {
-            config.indexToPosition.push_back(std::get<0>(data[i]));
-            for (size_t j = 0; j < std::get<1>(data[i]).size(); ++j)
-            {
+            dataFiltered.push_back(data[i]);
+        }
+    }
 
-                config.getCompleteData()[j].push_back(std::get<1>(data[i])[j]);
-            }
+    randomizeMutPositions(dataFiltered);
+
+    for (size_t i = 0; i < dataFiltered.size(); ++i)
+    {
+        config.indexToPosition.push_back(std::get<0>(dataFiltered[i]));
+        for (size_t j = 0; j < std::get<1>(dataFiltered[i]).size(); ++j)
+        {
+            config.getCompleteData()[j].push_back(std::get<1>(dataFiltered[i])[j]);
         }
     }
 }
@@ -655,7 +672,7 @@ passNormalCellFilter(std::vector<std::array<unsigned, 5>> const & normalCellCoun
     unsigned numMutated = 0;
     for (size_t i = 0; i < normalCellCounts.size(); ++i)
     {
-        if (computeWildLogScore(config, normalCellCounts[i][j], normalCellCounts[i][4]) < computeRawMutLogScore(config, normalCellCounts[i][j], normalCellCounts[i][4]))
+        if (computeRawWildLogScore(config, normalCellCounts[i][j], normalCellCounts[i][4]) < computeRawMutLogScore(config, normalCellCounts[i][j], normalCellCounts[i][4]))
         {
             ++numMutated;
         }
@@ -687,7 +704,7 @@ bool computeProbCellsAreMutated(
     tempLogProbs[0] = 0.0;
     for (size_t i = 1; i < filteredCounts.size() + 1; ++i)
     {
-        cellsNotMutated[i-1] = computeWildLogScore(config, filteredCounts[i - 1][currentChar], filteredCounts[i - 1][4]);
+        cellsNotMutated[i-1] = computeRawWildLogScore(config, filteredCounts[i - 1][currentChar], filteredCounts[i - 1][4]);
         cellsMutated[i-1] = computeRawMutLogScore(config, filteredCounts[i - 1][currentChar], filteredCounts[i - 1][4]);
         tempLogProbs[i] = tempLogProbs[i - 1] + cellsNotMutated[i - 1];
         //std::cout << filteredCounts[i - 1][currentChar] << ":" << filteredCounts[i - 1][4] << ":" << cellsNotMutated[i-1] << ":" << cellsMutated[i-1] << "\t";
@@ -726,33 +743,17 @@ bool computeProbCellsAreMutated(
         swap(logProbs, tempLogProbs);
         logNOverK = logNChooseK(numCells, numMut, logNOverK);
         double logH1Temp = logProbs.back() + log(prior) - logNOverK;
-        //std::cout << numMut << ":\t" << logH1Temp << "\t";
         logH1Temp = updateLogH1Temp(logH1Temp, numCells, numMut, tumorCells, (1.0 - config.getParam(Config<TTreeType>::mu)) / 2.0);
 
         // check whether the alternative hyothesis can win
         bool h0Wins = mustH0Win(logH1Max, logH1Temp, logNumCells, logH0);
         logProbTempValues[numMut] = logH1Temp;
-        //std::cout << logProbTempValues[numMut] << std::endl;
         if (h0Wins)
         { 
             return true;
         }
     }
     return false;
-}
-
-template <typename TEntry>
-void randomizeMutPositions(std::vector<TEntry> & data)
-{
-    TEntry temp;
-    for (size_t i = 0; i < data.size() * 10; ++i)
-    {
-        size_t first = std::rand() % data.size();
-        size_t second = std::rand() % data.size();
-        temp = data[first];
-        data[first] = data[second];
-        data[second] = temp;
-    }
 }
 
 
@@ -987,7 +988,7 @@ bool readMpileupFile(Config<TTreeType> & config)
                         pValue = 1 - boost::math::cdf(mydist, testStat);
                     }
 
-                    if(pValue > 0.05 || startingPointMeanOverDis >= config.meanFilter)
+                    if(pValue > 0.05 || startingPointMeanOverDis(0) >= config.meanFilter)
                     {
                         unsigned numAffectetCells = 0;
                         for (size_t cell = 0; cell < counts.size(); ++cell)
@@ -1025,8 +1026,6 @@ bool readMpileupFile(Config<TTreeType> & config)
 
     config.noiseCounts = NoiseCounts(gappedNoiseCounts);
     computeNoiseScore(config);
-
-    //randomizeMutPositions(data);
 
     insertData(config, data);
     writeNucInfo(config);
@@ -1076,10 +1075,6 @@ void readGraph(Config<TTreeType> & config)
     {
         config.getTree()[i].sample = sampleIds[i] - (numVertices / 2 - 1);
     }
-    //for(unsigned i = numVertices / 2 - 1; i < numVertices - 1; ++i)
-    //{
-    //    config.getTree()[i].sample = i - (numVertices / 2 - 1);
-    //}
 }
 
 template <typename TTreeType>
@@ -1159,28 +1154,29 @@ void readNucInfo(Config<TTreeType> & config)
     }
 
     {
-        std::getline(inFile, line);
-        boost::split(splitVec, line, boost::is_any_of("\t"));
-        for (unsigned i = 0; i < splitVec.size(); i += 2)
+        if (std::getline(inFile, line))
         {
-            config.noiseCounts.cov.push_back({std::stoul(splitVec[i]), std::stoul(splitVec[i+1])});
-            config.noiseCounts.numPos += config.noiseCounts.cov.back().second;
-        }
-        
-        std::getline(inFile, line);
-        boost::split(splitVec, line, boost::is_any_of("\t"));
-        for (unsigned i = 0; i < splitVec.size(); i += 2)
-        {
-            config.noiseCounts.sup.push_back({std::stoul(splitVec[i]), std::stoul(splitVec[i+1])});
-        }
+            boost::split(splitVec, line, boost::is_any_of("\t"));
+            for (unsigned i = 0; i < splitVec.size(); i += 2)
+            {
+                config.noiseCounts.cov.push_back({std::stoul(splitVec[i]), std::stoul(splitVec[i+1])});
+                config.noiseCounts.numPos += config.noiseCounts.cov.back().second;
+            }
+            
+            std::getline(inFile, line);
+            boost::split(splitVec, line, boost::is_any_of("\t"));
+            for (unsigned i = 0; i < splitVec.size(); i += 2)
+            {
+                config.noiseCounts.sup.push_back({std::stoul(splitVec[i]), std::stoul(splitVec[i+1])});
+            }
 
-        std::getline(inFile, line);
-        boost::split(splitVec, line, boost::is_any_of("\t"));
-        for (unsigned i = 0; i < splitVec.size(); i += 2)
-        {
-            config.noiseCounts.covMinusSup.push_back({std::stoul(splitVec[i]), std::stoul(splitVec[i+1])});
+            std::getline(inFile, line);
+            boost::split(splitVec, line, boost::is_any_of("\t"));
+            for (unsigned i = 0; i < splitVec.size(); i += 2)
+            {
+                config.noiseCounts.covMinusSup.push_back({std::stoul(splitVec[i]), std::stoul(splitVec[i+1])});
+            }
         }
-
     }
 }
 
