@@ -537,7 +537,7 @@ rule gatherRandomTreeBenchmark:
         numCells = NUMCELLS,
         numRuns = NUMRUNS
     shell:
-        'for num in {params.numCells}; do for ((i=0; i<{params.numRuns}; ++i)); do for ((j=i+1; j<{params.numRuns};++j)); do file1=\"cells_${{num}}/muts_100/drop_0.2/zyg_0/cpn_0/vio_0/run_${{i}}/art_tree_mut2sample.tsv\"; file2=\"cells_${{num}}/muts_100/drop_0.2/zyg_0/cpn_0/vio_0/run_${{j}}/art_tree_mut2sample.tsv\"; printf \"rand\\t${{i}}_${{j}}\\t${{num}}\\t\" >> {output.txt}; ' + PYTHON3 + ' ' + COMPUTETREEDISTANCE + ' ${{file1}} ${{file2}} 1 >> {output.txt}; done; done; done'
+        'for num in {params.numCells}; do for ((i=0; i<{params.numRuns}; ++i)); do for ((j=i+1; j<{params.numRuns};++j)); do file1=\"cells_${{num}}/muts_100/drop_0.2/zyg_0/cpn_0/vio_0/run_${{i}}/art_tree_mut2sample.tsv\"; file2=\"cells_${{num}}/muts_100/drop_0.2/zyg_0/cpn_0/vio_0/run_${{j}}/art_tree_mut2sample.tsv\"; printf \"Random\\t${{i}}_${{j}}\\t${{num}}\\t\" >> {output.txt}; ' + PYTHON3 + ' ' + COMPUTETREEDISTANCE + ' ${{file1}} ${{file2}} 1 >> {output.txt}; done; done; done'
 
 localrules: gatherBenchmarksTrees
 rule gatherBenchmarksTrees:
@@ -549,5 +549,5 @@ rule gatherBenchmarksTrees:
         pdf = OUTDIR + '{distance}_tree.pdf'
     shell:
         ('printf "exp\trun\\tcells\\tdist\\n" >> {output.txt}; ' +
-        'for f in {input.inf}; do run=$(echo $f | awk -F\'run_\' \'{{print $2}}\' | cut -d \'/\' -f 1); num=$(echo $f | awk -F\'cells_\' \'{{print $2}}\' | cut -d \'/\' -f 1); printf \"inf\\t${{run}}\\t${{num}}\\t\" >> {output.txt}; head -n 1 $f >> {output.txt}; done; cat {input.txt} >> {output.txt}; ' +
+        'for f in {input.inf}; do run=$(echo $f | awk -F\'run_\' \'{{print $2}}\' | cut -d \'/\' -f 1); num=$(echo $f | awk -F\'cells_\' \'{{print $2}}\' | cut -d \'/\' -f 1); printf \"SCIPhI\\t${{run}}\\t${{num}}\\t\" >> {output.txt}; head -n 1 $f >> {output.txt}; done; cat {input.txt} >> {output.txt}; ' +
         RSCRIPT  + PLOTTREEDIST + ' {output.txt}')

@@ -25,42 +25,45 @@ args <- commandArgs(TRUE)
 inputName <- args[1]
 df <- read.table(inputName, header = TRUE)
 df$cells <- as.factor(df$cells)
+df$alpha <- as.factor(df$alpha)
 
-df$tool <- factor(df$tool, levels = c("Monovar_1", "Monovar_2","Monovar_10","Monovar_50","Monovar_100", "SCIPhI_1", "SCIPhI_2", "SCIPhI_10", "SCIPhI_50", "SCIPhI_100"))
-
-ggplot(data = df, aes(x = cells, y = recall, fill = tool)) + 
+ggplot(data = df, aes(x = cells, y = recall, fill = tool, alpha = alpha)) + 
   #geom_point(position = position_jitterdodge(jitter.width = 1), aes(colour = tool), show.legend = FALSE) +
-  geom_boxplot(outlier.size = NULL, outlier.shape = NA, alpha = 0.5) +
+  geom_boxplot(outlier.size = NULL, outlier.shape = NA) +
   xlab("Number of cells") +
   ylab("Recall") +
-  scale_y_continuous(limits = c(0.6, 1)) +
-  scale_fill_manual(values=c("#008D91", "#00A6AB", "#00BFC4", "#00D8DE", "#00F1F7", "#F6483C", "#F75F55", "#F8766D", "#F98D85", "#FAA49E")) +
-  theme(legend.title=element_blank(),
-        text = element_text(size=25))
-  #scale_fill_discrete("", labels=c("Monovar", expression(paste("SCI", Phi))))
+  scale_y_continuous(limits = c(0.75, 1)) +
+  theme_bw() +
+  theme(text = element_text(size=25)) +
+  labs(fill='Method', alpha="Initial copies") +
+  scale_alpha_manual(values=c(0.1, 0.25, 0.5, 0.75, 1)) +
+  guides(alpha=guide_legend(override.aes=list(fill=hcl(c(15,195),100,0,alpha=c(0.1, 0.25, 0.5, 0.75, 1)),
+                                              colour=NA))) 
+
 ggsave(paste(gsub(".txt","",inputName), "_rec.pdf", sep=""), width = 14, height = 7)
-  
-ggplot(data = df, aes(x = cells, y = precision, fill = tool)) + 
+
+ggplot(data = df, aes(x = cells, y = precision, fill = tool, alpha = alpha)) + 
   #geom_point(position = position_jitterdodge(jitter.width = 1), aes(colour = tool), show.legend = FALSE) +
-  geom_boxplot(outlier.size = NULL, outlier.shape = NA, alpha = 0.5) +
+  geom_boxplot(outlier.size = NULL, outlier.shape = NA) +
   xlab("Number of cells") +
   ylab("Precision") +
-  scale_y_continuous(limits = c(0.95, 1)) +
-  scale_fill_manual(values=c("#008D91", "#00A6AB", "#00BFC4", "#00D8DE", "#00F1F7", "#F6483C", "#F75F55", "#F8766D", "#F98D85", "#FAA49E")) +
-  theme(legend.title=element_blank(),
-        text = element_text(size=25))
-  #scale_fill_discrete("", labels=c("Monovar", expression(paste("SCI", Phi))))
+  scale_y_continuous(limits = c(0.75, 1)) +
+  theme(text = element_text(size=25)) +
+  labs(fill='Method', alpha="Initial copies") +
+  scale_alpha_manual(values=c(0.1, 0.25, 0.5, 0.75, 1)) +
+  guides(alpha=guide_legend(override.aes=list(fill=hcl(c(15,195),100,0,alpha=c(0.1, 0.25, 0.5, 0.75, 1)),
+                                              colour=NA))) 
 ggsave(paste(gsub(".txt","",inputName), "_pre.pdf", sep=""), width = 14, height = 7)
 
-ggplot(data = df, aes(x = cells, y = f1, fill = tool)) + 
-  #geom_point(position = position_jitterdodge(jitter.width = 1), aes(colour = tool), show.legend = FALSE) +
-  geom_boxplot(outlier.size = NULL, outlier.shape = NA, alpha = 0.5) +
-  xlab("Number of cells") +
+ggplot(data = df, aes(x = alpha, y = f1, fill = tool, alpha = cells)) + 
+  geom_boxplot(outlier.size = NULL, outlier.shape = NA) +
+  xlab("Initial chromosome copies") +
   ylab("F1 score") +
   scale_y_continuous(limits = c(0.75, 1)) +
-  scale_fill_manual(values=c("#008D91", "#00A6AB", "#00BFC4", "#00D8DE", "#00F1F7", "#F6483C", "#F75F55", "#F8766D", "#F98D85", "#FAA49E")) +
-  theme(legend.title=element_blank(),
-        text = element_text(size=25))
-  #scale_fill_discrete("", labels=c("Monovar", expression(paste("SCI", Phi))))
+  #theme_bw() +
+  theme(text = element_text(size=25)) +
+  labs(fill='Method', alpha="Number of cells") +
+  scale_alpha_manual(values=c(0.2,0.55, 1)) +
+  guides(alpha=guide_legend(override.aes=list(fill=hcl(c(15,195),100,0,alpha=c(0.1, 0.55, 1)),
+                                              colour=NA))) 
 ggsave(paste(gsub(".txt","",inputName), "_f1.pdf", sep=""), width = 14, height = 7)
-
