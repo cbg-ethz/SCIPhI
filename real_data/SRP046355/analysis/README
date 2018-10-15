@@ -1,0 +1,7 @@
+Before you can run snakmake you have to specifiy the path to the SCIPhI git, Monovar and GATK in the config.json.
+
+Afterwards you can type
+
+./run.sh
+
+to start the analysis.
