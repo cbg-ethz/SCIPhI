@@ -1,0 +1,145 @@
+# SCIPhI: Single-cell mutation identification via phylogenetic inference
+#
+# Copyright (C) 2018 ETH Zurich, Jochen Singer
+#
+# This file is part of SCIPhI.
+#
+# SCIPhI is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# SCIPhI is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with SCIPhI. If not, see <http://www.gnu.org/licenses/>.
+#
+# @author: Jochen Singer
+
+OUTDIR = ''
+
+f = open('SRP046355.txt', 'r')
+NAMES = []
+f.readline()
+for line in f:
+    NAMES.append(line.strip().split("\t")[7])
+f.close()
+
+f = open('SRP046355.txt', 'r')
+f.readline()
+CELLS = []
+SRR2SAMPLE = {}
+for line in f:
+    CELLS.append(line.strip().split()[2])
+    SRR2SAMPLE[line.strip().split()[7]] = (line.strip().split()[2])
+f.close()
+
+def finalSRANames():
+    out = []
+    for srr, sample in SRR2SAMPLE.items():
+        out.append('sra/' + srr + '.sra')
+    return out
+FINALSRANAMES = finalSRANames()
+
+def finalFastqNames():
+    out = []
+    for srr, sample in SRR2SAMPLE.items():
+        out.append('sra/' + sample + '/PAIREDEND/' + srr + '_R1.fastq.gz')
+        out.append('sra/' + sample + '/PAIREDEND/' + srr + '_R2.fastq.gz')
+    return out
+FINALFASTQNAMES = finalFastqNames()
+
+def finalTSVNames():
+    out = []
+    for srr, sample in SRR2SAMPLE.items():
+        out.append('sra/' + sample + '/PAIREDEND/' + srr + '.tsv')
+    return out
+FINALTSVNAMES = finalTSVNames()
+
+rule all:
+    input: 
+        expand(OUTDIR + '{file}', file = FINALSRANAMES),
+        expand(OUTDIR + '{file}', file = FINALFASTQNAMES),
+        expand(OUTDIR + '{file}', file = FINALTSVNAMES),
+        '../../data/ucsc.hg19.fasta',
+        '../../data/ucsc.hg19.fasta.amb',
+        '../../data/Mills_and_1000G_gold_standard.indels.hg19.sites.vcf',
+        '../../data/Mills_and_1000G_gold_standard.indels.hg19.sites.vcf.idx'
+
+def getShortId(wildcards):
+    return wildcards.id[0:6]
+
+localrules: setSRADownloadDir
+rule setSRADownloadDir:
+    output:
+        os.path.expanduser('~') + '/.ncbi/user-settings.mkfg'
+    params:
+        home = os.path.expanduser('~'),
+        outdir = os.getcwd()
+    shell:
+        'mkdir -p $HOME/.ncbi; echo \'/repository/user/main/public/root = \"{params.outdir}\"\' > {output}'
+
+localrules: download
+rule download:
+    input: 
+        os.path.expanduser('~') + '/.ncbi/user-settings.mkfg'
+    output: 
+        temp(OUTDIR + 'sra/{id}.sra')
+    params: 
+        shortId = getShortId,
+        lsfoutfile = OUTDIR + 'sra/{id}.sra.out',
+        lsferrfile = OUTDIR + 'sra/{id}.sra.err',
+        outdir = OUTDIR,
+        scratch = '10000',
+        mem = '10000',
+        time = '60'
+    conda:
+        '../../data/envs/sra.yaml'
+    shell:  
+        'prefetch --max-size 200GB {wildcards.id}'
+
+rule fastqDump:
+    input: 
+        sra = OUTDIR + 'sra/{id}.sra'
+    output: 
+        R1 = OUTDIR + 'sra/{id}/PAIREDEND/{id}_1.fastq.gz',
+        R2 = OUTDIR + 'sra/{id}/PAIREDEND/{id}_2.fastq.gz'
+    params: 
+        outDir = OUTDIR + 'sra/{id}/PAIREDEND/',
+        lsfoutfile = OUTDIR + 'sra/{id}.fastq.out',
+        lsferrfile = OUTDIR + 'sra/{id}.fastq.err',
+        scratch = '10000',
+        mem = '10000',
+        time = '48:00'
+    conda:
+        '../../data/envs/sra.yaml'
+    shell:
+        'fastq-dump --split-3 --gzip --outdir {params.outDir} {input.sra}'
+
+localrules: linkFastqs
+rule linkFastqs:
+    input:
+        fastq = OUTDIR + 'sra/{srr}/PAIREDEND/{srr}_{mate}.fastq.gz'
+    output:
+        fastq = OUTDIR + 'sra/{sample}/PAIREDEND/{srr}_R{mate}.fastq.gz'
+    params:
+        outdir = OUTDIR
+    shell:
+        'cd {params.outdir}sra/{wildcards.sample}/PAIREDEND/; ln -s ../../{wildcards.srr}/PAIREDEND/{wildcards.srr}_{wildcards.mate}.fastq.gz {wildcards.srr}_R{wildcards.mate}.fastq.gz; cd - ; touch -h {output.fastq}'
+
+localrules: createTSVs
+rule createTSVs:
+    input:
+        fastq = OUTDIR + 'sra/{srr}/PAIREDEND/{srr}_1.fastq.gz'
+    output:
+        fastq = OUTDIR + 'sra/{sample}/PAIREDEND/{srr}.tsv'
+    run:
+        f = open(output.fastq, 'w')
+        f.write("RUN_NAME_FOLDER\t" + wildcards.sample + "\n")
+        f.write("LANE_NUMBER\t" + wildcards.sample + "\n")
+        f.write("SAMPLE_CODE\t" + wildcards.sample + "\n")
+        f.write("SAMPLE_TYPE\tILLUMINA\n")
+        f.close()

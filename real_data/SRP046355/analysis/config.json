@@ -1,0 +1,164 @@
+{
+    "resources":{
+        "H_sapiens_hg19":{
+            "reference": "../../data/ucsc.hg19.fasta",
+            "referenceFai": "../../data/ucsc.hg19.fasta.fai",
+            "referenceDict": "../../data/ucsc.hg19.dict",
+            "regions": "../../data/nexterarapidcapture_expandedexome_targetedregions.bed",
+            "1000G_indels": "../../data/1000G_phase1.indels.hg19.sites.vcf",
+            "Mills_indels": "../../data/Mills_and_1000G_gold_standard.indels.hg19.sites.vcf",
+            "bwaIndex": "../../data/ucsc.hg19.fasta"
+        },
+    },
+    "tools":{
+        "bwa":{
+            "mem":{
+                "params": "-M ",
+                "scratch": "2000",
+                "memory": "2000",
+                "time": "1400",
+                "threads": 8
+            }
+        },
+        "samtools":{
+            "flagstat":{
+                "params": "",
+                "scratch":"1000",
+                "mem": "1000",
+                "time": "200",
+                "threads": 1
+            },
+            "index":{
+                "scratch": "2000",
+                "mem": "2000",
+                "time": "100",
+                "threads": 1
+            },
+            "mpileup":{
+                "params": "-B -d 1000 -q 40 -Q 30 ",
+                "scratch": "8000",
+                "mem": "8000",
+                "time": "2400",
+                "threads": 1
+            }
+        },
+        "picard":{
+                "fixMateInformation":{
+                "sortOrder": "coordinate",
+                "mem": "12000",
+                "time": "1400",
+                "scratch": "12000",
+                "threads": 1,
+                "assume_sorted": "false",
+                "params": "MAX_RECORDS_IN_RAM=500000"
+            },
+            "mergeBams":{
+                "threads": 1,
+                "mem": "24000",
+                "time": "1400",
+                "scratch": "24000",
+                "assume_sorted": "true",
+                "params" : ""
+            },
+            "markduplicates":{
+                "mem": "12000",
+                "time": "1400",
+                "scratch": "12000",
+                "threads": 1,
+                "params": "ASSUME_SORTED=true MAX_FILE_HANDLES_FOR_READ_ENDS_MAP=1000 MAX_RECORDS_IN_RAM=500000 REMOVE_DUPLICATES=true CREATE_INDEX=true"
+            }
+        },
+        "GATK":{
+            "call": "java -jar /path/to/GenomeAnalysisTK.jar",
+            "realign" : {
+                "targetCreator":{
+                    "params": "",
+                    "threads": 1,
+                    "mem": "16000",
+                    "time": "1400",
+                    "scratch": "16000"
+                },
+                "realignIndels":{
+                    "params": "--maxReadsForRealignment 200000 --maxReadsInMemory 2000000",
+                    "threads": 1,
+                    "mem": "24000",
+                    "time": "1400",
+                    "scratch": "24000"
+                },
+                "Mills_indels": "Y",
+                "1000G_indels": "Y",
+                "realignFilesFromExperimentTogether" : "N"
+            },
+            "haplotypeCaller":{
+                "threads": 1,
+                "mem": "16000",
+                "time": "1400",
+                "scratch": "16000",
+                "params": ""
+            },
+            "genotypeGVCFs":{
+                "threads": 1,
+                "mem": "16000",
+                "time": "1400",
+                "scratch": "16000",
+                "params": ""
+            }
+        },
+        "qualimap":{
+            "call": "qualimap ",
+            "threads": 2,
+            "mem": "24000",
+            "time": "140",
+            "scratch": "16000",
+            "params": ""
+        },
+        "multiqc":{
+            "call": "multiqc ",
+            "threads": 1,
+            "mem": "5000",
+            "time": "10",
+            "scratch": "5000",
+            "params": "-p "
+        },
+        "monovar": {
+            "activate" : "",
+            "call" : "monovar.py",
+            "scratch": "10000",
+            "mem": "10000",
+            "time": "4200",
+            "threads": 1
+        },
+        "sciphi": {
+            "call" : "path/to/git/SCIPhI_nm/build/sciphi ",
+            "scratch": "4000",
+            "mem": "4000",
+            "time": "4200",
+            "threads": 1,
+            "params":" -l 100000 --ls 10000 "
+        },
+        "sciphiToHeatMap": {
+            "call1" : "path/to/git/SCIPhI_nm/build/convertTree2Map",
+            "call2" : "Rscript path/to/git/SCIPhI_nm/benchmark/createSCIPhITreeHeatMap.R"
+        },
+        "monovarToHeatMap": {
+            "call1" : "python3 path/to/git/SCIPhI_nm/benchmark/monovarToMap.py",
+            "call2" : "Rscript path/to/git/SCIPhI_nm/benchmark/createSCIPhITreeHeatMap.R"
+        },
+        "sciphiOverviewGraph": {
+            "call1" : "python3 path/to/git/SCIPhI_nm/benchmark/createOverviewGraph2.py",
+            "call2" : "dot"
+        },
+        "parse": {
+            "call" : "perl parse.pl ",
+            "scratch": "4000",
+            "mem": "4000",
+            "time": "420"
+        },
+        "compare": {
+            "call" : "python3 compareCellLine.py ",
+            "scratch": "48000",
+            "mem": "48000",
+            "time": "420"
+        }
+    }
+}

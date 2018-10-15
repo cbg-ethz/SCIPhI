@@ -1,0 +1,105 @@
+import os, glob, sys
+from snakemake.utils import R
+
+SAMPLEMAPPING = 'sample_mapping.txt' 
+FASTQDIR = '../data/sra/'
+OUTDIR   = 'out/'
+TMPDIR   = 'tmp/'
+
+ORGANISM = 'H_sapiens_hg19'
+
+BWAIN = FASTQDIR
+BWAOUT = OUTDIR + 'bwa/'
+FIXMATEANDSORTIN = BWAOUT
+FIXMATEANDSORTOUT = OUTDIR + 'sorted/'
+MERGEBAMSIN = FIXMATEANDSORTOUT
+MERGEBAMSOUT = OUTDIR + 'merged/'
+MARKPCRDUBLICATESIN = MERGEBAMSOUT
+MARKPCRDUBLICATESOUT = OUTDIR + 'markedDuplicates/'
+REALIGNINDELSIN = MARKPCRDUBLICATESOUT
+REALIGNINDELSOUT = OUTDIR + 'realignedIndels/'
+MPILEUPIN = REALIGNINDELSOUT
+MPILEUPOUT = OUTDIR + 'mpileup/'
+SCATEOUT = OUTDIR + 'variants/sciphi/'
+MONOVAROUT = OUTDIR + 'variants/monovar/'
+FINALBAMOUTDIR = REALIGNINDELSOUT
+MONOVAROUT = OUTDIR + 'variants/monovar/'
+SCIPHIOUT = OUTDIR + 'variants/sciphi/'
+HAPLOTYPECALLERIN = REALIGNINDELSOUT
+HAPLOTYPECALLEROUT = OUTDIR + 'variants/gatk_haplo/'
+POSTABLEOUT = OUTDIR + 'pos_table/'
+COMPAREOUT = OUTDIR + 'variants/compare/'
+
+include: "../../pipe/misc_snake.py"
+
+TUMORSAMPLENAMES = getTumorSampleNames("CT")
+BULKNORMALSAMPLENAMES = getTumorSampleNames("BT")
+SAMPLENAMES = TUMORSAMPLENAMES + BULKNORMALSAMPLENAMES
+
+PAIREDFASTQFILESWITHOUTR = getAllPairedFastqFilesWithoutR()
+
+SINGLEFASTQFILES = ""
+SAMPLENAMES = TUMORSAMPLENAMES 
+
+include: "../../pipe/align_snake.py"
+include: "../../pipe/qc_snake.py"
+include: "../../pipe/var_exome_snake.py"
+include: "../../pipe/monovar_snake.py"
+
+print(SAMPLENAMES)
+
+rule SRP044380:
+    input:
+        REALIGNINDELSOUT + 'multiqc_report.html',
+        REALIGNINDELSOUT + 'SKN2-Ref.bam',
+        REALIGNINDELSOUT + 'SKN2-Ref.bam.flagstat',
+        REALIGNINDELSOUT + 'SKN2-Ref.bam_stats/qualimapReport.html',
+        HAPLOTYPECALLEROUT + 'SKN2-Ref.vcf',
+        expand(OUTDIR + 'variants/monovar/{experiment}.vcf', experiment = getExperimentNames()),
+        expand(OUTDIR + 'variants/monovar/{experiment}_heatTree.pdf', experiment = getExperimentNames()),
+        expand(OUTDIR + 'variants/monovar/{experiment}_cluster.pdf', experiment = getExperimentNames()),
+        expand(OUTDIR + 'variants/sciphi/{run}/{experiment}.vcf', experiment = getExperimentNames(), run = ['1', '2', '3']),
+        expand(OUTDIR + 'variants/sciphi/{run}/{experiment}_heatTree.pdf', experiment = getExperimentNames(), run = ['1', '2', '3']),
+        expand(OUTDIR + 'variants/sciphi/1/{experiment}_overview.pdf', experiment = getExperimentNames()),
+        counts = COMPAREOUT + 'counts.tsv'
+
+rule createPosTable:
+    input:
+        MPILEUPOUT + 'SKN2-Ref.mpileup'
+    output:
+        POSTABLEOUT + 'SKN2-Ref.pos'
+    params:
+        lsfoutfile = POSTABLEOUT + 'SKN2-Ref.pos.lsfout.log',
+        lsferrfile = POSTABLEOUT + 'SKN2-Ref.pos.lsferr.log',
+        scratch = config['tools']['parse']['scratch'],
+        mem = config['tools']['parse']['mem'],
+        time = config['tools']['parse']['time']
+    threads:
+        1
+    shell:
+        '{config[tools][parse][call]} {input} > {output}'
+        
+rule compareToBulk:
+    input:
+        sciphi = SCIPHIOUT + '1/exp.vcf',
+        monovar = MONOVAROUT + 'exp.vcf',
+        hc = HAPLOTYPECALLEROUT + 'SKN2-Ref.vcf',
+        mpileup = MPILEUPOUT + 'exp_tumor_complete.mpileup',
+        bulkPos = POSTABLEOUT + 'SKN2-Ref.pos'
+    output:
+        counts = COMPAREOUT + 'counts.tsv',
+        fps = COMPAREOUT + 'fps.tsv',
+        
+    params:
+        lsfoutfile = COMPAREOUT + 'counts.tsv.lsfout.log',
+        lsferrfile = COMPAREOUT + 'counts.tsv.lsferr.log',
+        scratch = config['tools']['compare']['scratch'],
+        mem = config['tools']['compare']['mem'],
+        time = config['tools']['compare']['time']
+    threads:
+        1
+    shell:
+       '{config[tools][compare][call]} {input.sciphi} {input.monovar} {input.hc} {input.mpileup} {input.bulkPos} 30 {output.fps} > {output.counts}'
+
+
+
