@@ -14,7 +14,6 @@
     "tools":{
         "bwa":{
             "mem":{
-                "call":"bwa mem ",
                 "params": "-M ",
                 "scratch": "2000",
                 "memory": "2000",
@@ -23,11 +22,10 @@
             }
         },
         "samtools":{
-            "call": "samtools ",
             "flagstat":{
                 "params": "",
-                "scratch":"2000",
-                "mem": "4000",
+                "scratch":"1000",
+                "mem": "1000",
                 "time": "200",
                 "threads": 1
             },
@@ -38,28 +36,14 @@
                 "threads": 1
             },
             "mpileup":{
-                "params": "-A -B -d 1000 -q 40 ",
-                "outputTags": "DP,DP4,SP,DPR,DV",
+                "params": "-B -d 1000 -q 40 -Q 30",
                 "scratch": "8000",
                 "mem": "8000",
                 "time": "1400",
                 "threads": 1
-            },
-            "rmSecondary":{
-                "scratch": "4000",
-                "mem": "4000",
-                "time": "235",
-                "threads": 1
-            },
-            "rmDuplicates":{
-                "threads": 1,
-                "scratch": "2000",
-                "mem": "2000",
-                "time": "235"
             }
         },
         "picard":{
-            "call": "picard.jar ",
             "fixMateInformation":{
                 "sortOrder": "coordinate",
                 "mem": "12000",
@@ -86,7 +70,7 @@
             }
         },
         "GATK":{
-            "call": "java -jar GenomeAnalysisTK.jar",
+            "call": "java -jar path/to/GenomeAnalysisTK.jar",
             "realign" : {
                 "targetCreator":{
                     "params": "",
@@ -107,29 +91,52 @@
                 "realignFilesFromExperimentTogether" : "N"
             }
         },
+        "qualimap":{
+            "call": "qualimap ",
+            "threads": 2,
+            "mem": "24000",
+            "time": "140",
+            "scratch": "16000",
+            "params": ""
+        },
+        "multiqc":{
+            "call": "multiqc ",
+            "threads": 1,
+            "mem": "5000",
+            "time": "10",
+            "scratch": "5000",
+            "params": "-p "
+        },
         "monovar": {
             "activate" : "",
-            "call" : "python3 path_to_monovar",
-            "params" : "-p 0.002 -a 0.2 -t 0.05 -m 2",
+            "call" : "path/to/monovar.py",
             "scratch": "10000",
             "mem": "10000",
             "time": "4200",
             "threads": 1
         },
         "sciphi": {
-            "call" : "path_to_sciphi_git/sciphi",
-            "scratch": "3000",
-            "mem": "3000",
+            "call" : "path/to/git/SCIPhI_nm/build/sciphi",
+            "params": "-l 1000000",
+            "scratch": "2000",
+            "mem": "2000",
             "time": "1400",
             "threads": 1
         },
         "sciphiToHeatMap": {
-            "call1" : "path_to_sciphi_git/convertTree2Map",
-            "call2" : "Rscript path_to_sciphi_git/benchmark/createSCIPhITreeHeatMap.R"
+            "call1" : "path/to/git/SCIPhI_nm/build/convertTree2Map",
+            "call2" : "Rscript path/to/git/SCIPhI_nm/benchmark/createSCIPhITreeHeatMap.R"
         },
         "monovarToHeatMap": {
-            "call1" : "python3 path_to_sciphi_git/monovarToMap.py",
-            "call2" : "Rscript path_to_sciphi_git/benchmark/createSCIPhITreeHeatMap.R"
+            "call1" : "python3 path/to/git/SCIPhI_nm/benchmark/monovarToMap.py",
+            "call2" : "Rscript path/to/git/SCIPhI_nm/benchmark/createSCIPhITreeHeatMap.R"
+        },
+        "sciphiOverviewGraph": {
+            "call1" : "python3 path/to/git/SCIPhI_nm/benchmark/createOverviewGraph2.py",
+            "call2" : "dot"
+        },
+        "monovarCluster": {
+            "call" : "Rscript path/to/git/SCIPhI_nm/benchmark/createMonovarCluster.r"
         }
     }
 }

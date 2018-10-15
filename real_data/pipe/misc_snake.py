@@ -148,7 +148,9 @@ def getSampleNamesFromExperimentNames(wildcards):
                 if exp not in expMap.keys():
                     expMap[exp] = []
                 expMap[exp].append(sample)
-    return expMap[wildcards.experiment]
+    if wildcards.experiment in expMap:
+        return expMap[wildcards.experiment]
+    return ['ERROR']
 
 def checkFilesAgainstSampleNames(files, sampleNames):
     finalFiles = []
@@ -186,6 +188,11 @@ def getPairedFastqFilesWithoutR(SAMPLENAMES):
 
     return checkFilesAgainstSampleNames(files, SAMPLENAMES)
 
+def getAllPairedFastqFilesWithoutR():
+    files = [file.replace(FASTQDIR, '').replace('_R1.fastq.gz','')for file in glob.glob(FASTQDIR + '*/PAIREDEND/*_R1.fastq.gz')]
+    files = files + [file.replace(FASTQDIR, '').replace('_R1.fastq','')for file in glob.glob(FASTQDIR + '*/PAIREDEND/*_R1.fastq')]
+
+    return files
     #return [file.replace(FASTQDIR, '').replace('_R1.fastq.gz','')for file in glob.glob(FASTQDIR + '*/PAIREDEND/*_R1.fastq.gz')]
     #return [file.replace(FASTQDIR, '').replace('_R1.fastq','')for file in glob.glob(FASTQDIR + '*/PAIREDEND/*_R1.fastq')]
 

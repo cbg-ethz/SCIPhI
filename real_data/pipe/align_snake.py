@@ -338,6 +338,7 @@ rule picards_mark_PCR_duplicates:
         'OUTPUT={output.bam}  ' +
         '{params.params} ' +
         'TMP_DIR={TMPDIR} ' +
+        #'--MAX_FILE_HANDLES_FOR_READ_ENDS_MAP=1000 ' +
         'METRICS_FILE={log.metrics} ' +
         '2> {log.log}')
 
@@ -425,6 +426,7 @@ rule gatk_realign_target_creation:
         bam = getBamsToRealingFromExperimentId,
         bai = getBaisToRealingFromExperimentId,
         reference = config['resources'][ORGANISM]['reference'],
+        regions = config['resources'][ORGANISM]['regions'],
         databasis = getDataBasisForRealign()
     output:
         intervals = temp(REALIGNINDELSOUT + '{experiment}.intervals'),
@@ -444,6 +446,7 @@ rule gatk_realign_target_creation:
     shell:
         ('{config[tools][GATK][call]} -T RealignerTargetCreator ' +
         '-R {input.reference} ' +
+        '-L {input.regions} ' +
         '{params.input} ' +
         '{params.known} ' +
         '-o {output.intervals} ' +
@@ -484,6 +487,7 @@ rule gatk_realign_indels:
         bam = getBamsToRealingFromExperimentId,
         bai = getBaisToRealingFromExperimentId,
         map = REALIGNINDELSOUT + '{experiment}.map',
+        regions = config['resources'][ORGANISM]['regions'],
         intervals = REALIGNINDELSOUT + '{experiment}.intervals',
         reference = config['resources'][ORGANISM]['reference'],
         databasis = getDataBasisForRealign()
@@ -505,6 +509,7 @@ rule gatk_realign_indels:
     shell:
         ('{config[tools][GATK][call]} -T IndelRealigner ' +
         '-R {input.reference} ' +
+        '-L {input.regions} ' +
         '{params.input} ' +
         '{params.known} ' +
         '--nWayOut {input.map} ' +
@@ -612,12 +617,20 @@ rule monovarToHeatMap:
 localrules: sciphiOverviewGraph
 rule sciphiOverviewGraph:
     input:
-        gv = '{sample}.gv'
+        ref = config['resources'][ORGANISM]['reference'],
+        mpileup = MPILEUPOUT + '{experiment}_all_complete.mpileup',
+        fileNames = SCIPHIOUT + '{experiment}_all_bamFileNames.txt',
+        bTree = SCIPHIOUT + '{run}/{experiment}/best_index/tree.gv',
+        sTree = SCIPHIOUT + '{run}/{experiment}.gv'
     output:
-        gv = '{sample}_overview.gv',
-        pdf = '{sample}_overview.pdf',
+        smt = SCIPHIOUT + '{run}/{experiment}_smt.tsv',
+        gv = SCIPHIOUT + '{run}/{experiment}_overview.gv',
+        pdf = SCIPHIOUT + '{run}/{experiment}_overview.pdf'
+    params:
+        index = SCIPHIOUT + '{run}/{experiment}/best_index/'
     shell:
-        '/cluster/work/bewi/software/src/python/3.6.4/bin/python3 ~/git/SCIPhI_revert/benchmark/createOverviewGraph.py {input.gv} > {output.gv}; /cluster/work/bewi/software/src/graphviz/2.40.1/bin/dot -Tpdf {output.gv} > {output.pdf}'
+        ('{config[tools][sciphi][call]} --smt {output.smt} --il {params.index} {input.mpileup}; ' +
+        '{config[tools][sciphiOverviewGraph][call1]} {output.smt} {input.bTree} {input.fileNames} {input.sTree} > {output.gv}; {config[tools][sciphiOverviewGraph][call2]} -Tpdf {output.gv} > {output.pdf}')
 
 localrules: monovarCluster
 rule monovarCluster:
@@ -628,4 +641,4 @@ rule monovarCluster:
         pdf = '{sample}_cluster.pdf',
     shell:
         ('cp {input.probs} {output.probs}; sed -i \'s/.bam//g\' {output.probs}; ' +
-        'Rscript ~/git/SCIPhI_revert/benchmark/createMonovarCluster.r {output.probs} > {output.pdf}')
+        '{config[tools][monovarCluster][call]} {output.probs} {output.pdf}')

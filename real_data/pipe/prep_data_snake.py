@@ -80,7 +80,7 @@ params:
     lsfoutfile = OUTDIR + 'sra/{id}.fastq.out',
     lsferrfile = OUTDIR + 'sra/{id}.fastq.err'
 shell:
-    '/cluster/work/bewi/modules/sratoolkit/2.8.0/sratoolkit.2.8.0-ubuntu64/bin/fastq-dump --split-3 --gzip --outdir {params.outDir} {input.sra}'
+    'fastq-dump --split-3 --gzip --outdir {params.outDir} {input.sra}'
 
 localrules: linkFastqsPaired
 rule linkFastqsPaired:
