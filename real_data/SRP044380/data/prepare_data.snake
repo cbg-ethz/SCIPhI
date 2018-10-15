@@ -54,6 +54,7 @@ include: '../../data/data.snake'
 
 rule all:
     input: 
+        #expand(OUTDIR + 'sra/{name}.sra', name = NAMES),
         expand(OUTDIR + '{file}', file = FINALFASTQNAMES),
         expand(OUTDIR + '{file}', file = FINALTSVNAMES),
         '../../data/ucsc.hg19.fasta',

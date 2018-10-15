@@ -1,13 +1,13 @@
 {
     "resources":{
         "H_sapiens_hg19":{
-            "reference": "../data/databases/ucsc.hg19.fasta",
-            "referenceFai": "../data/databases/ucsc.hg19.fasta.fai",
-            "referenceDict": "../data/databases/ucsc.hg19.dict",
+            "reference": "../../data/ucsc.hg19.fasta",
+            "referenceFai": "../../data/ucsc.hg19.fasta.fai",
+            "referenceDict": "../../data/ucsc.hg19.dict",
             "regions": "panel_regions.bed",
-            "1000G_indels": "../data/databases/1000G_phase1.indels.hg19.sites.vcf",
-            "Mills_indels": "../data/databases/Mills_and_1000G_gold_standard.indels.hg19.sites.vcf",
-            "bwaIndex": "../data/databases/ucsc.hg19.fasta"
+            "1000G_indels": "../../data/1000G_phase1.indels.hg19.sites.vcf",
+            "Mills_indels": "../../data/Mills_and_1000G_gold_standard.indels.hg19.sites.vcf",
+            "bwaIndex": "../../data/ucsc.hg19.fasta"
         },
     },
     "tools":{
@@ -21,6 +21,13 @@
             }
         },
         "samtools":{
+            "flagstat":{
+                "params": "",
+                "scratch":"1000",
+                "mem": "1000",
+                "time": "200",
+                "threads": 1
+            },
             "index":{
                 "scratch": "2000",
                 "mem": "2000",
@@ -28,11 +35,10 @@
                 "threads": 1
             },
             "mpileup":{
-                "params": "-A -B -d 100000 -q 40 ",
-                "outputTags": "DP,DP4,SP,DPR,DV",
+                "params": "-B -d 1000000 -q 40 -Q 30",
                 "scratch": "8000",
                 "mem": "8000",
-                "time": "2400",
+                "time": "1400",
                 "threads": 1
             }
         },
@@ -63,7 +69,7 @@
             }
         },
         "GATK":{
-            "call": "java -jar GenomeAnalysisTK.jar",
+            "call": "java -jar path/to/GenomeAnalysisTK.jar",
             "realign" : {
                 "targetCreator":{
                     "params": "",
@@ -84,9 +90,25 @@
                 "realignFilesFromExperimentTogether" : "N"
             }
         },
+        "qualimap":{
+            "call": "qualimap ",
+            "threads": 2,
+            "mem": "24000",
+            "time": "140",
+            "scratch": "16000",
+            "params": ""
+        },
+        "multiqc":{
+            "call": "multiqc ",
+            "threads": 1,
+            "mem": "5000",
+            "time": "10",
+            "scratch": "5000",
+            "params": "-p "
+        },
         "monovar": {
             "activate" : "",
-            "call" : "path_to_monovar.py",
+            "call" : "path/to/monovar.py",
             "params" : "-p 0.002 -a 0.2 -t 0.05 -m 2",
             "scratch": "10000",
             "mem": "10000",
@@ -94,7 +116,7 @@
             "threads": 1
         },
         "sciphi": {
-            "call" : "path_to_sciphi_git/sciphi ",
+            "call" : "path/to/git/SCIPhI_nm/build/sciphi",
             "exRegions" : "panel_to_exclude.vcf",
             "params" : "-t s -r 1 -l 1000000 -g 1 -e 0.2",
             "scratch": "4000",
@@ -103,12 +125,19 @@
             "threads": 1
         },
         "sciphiToHeatMap": {
-            "call1" : "path_to_sciphi_git/convertTree2Map",
-            "call2" : "path_to_sciphi_git/benchmark/createSCIPhITreeHeatMap.R"
+            "call1" : "path/to/git/SCIPhI_nm/build/convertTree2Map",
+            "call2" : "Rscript path/to/git/SCIPhI_nm/benchmark/createSCIPhITreeHeatMap.R"
         },
         "monovarToHeatMap": {
-            "call1" : "python3 path_to_sciphi_git/benchmark/monovarToMap.py",
-            "call2" : "path_to_sciphi_git/benchmark/createSCIPhITreeHeatMap.R"
+            "call1" : "python3 path/to/git/SCIPhI_nm/benchmark/monovarToMap.py",
+            "call2" : "Rscript path/to/git/SCIPhI_nm/benchmark/createSCIPhITreeHeatMap.R"
+        },
+        "sciphiOverviewGraph": {
+            "call1" : "python3 path/to/git/SCIPhI_nm/benchmark/createOverviewGraph.py",
+            "call2" : "dot"
+        },
+        "monovarCluster": {
+            "call" : "Rscript path/to/git/SCIPhI_nm/benchmark/createMonovarCluster.r"
         }
     }
 }
