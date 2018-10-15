@@ -1,0 +1,119 @@
+# SCIPhI: Single-cell mutation identification via phylogenetic inference
+#
+# Copyright (C) 2018 ETH Zurich, Jochen Singer
+#
+# This file is part of SCIPhI.
+#
+# SCIPhI is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# SCIPhI is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with SCIPhI. If not, see <http://www.gnu.org/licenses/>.
+# 
+# @author: Jochen Singer
+
+rule createMpileup:
+    input: EXP + '.csv'
+    output:
+        mpileup = MPILEUPOUT + EXP + '_tumor_complete.mpileup',
+        fileNames = SCIPHIOUT + EXP + '_tumor_bamFileNames.txt',
+        regions = config['tools']['sciphi']['exRegions'],
+    params:
+        lsfoutfile = MPILEUPOUT + EXP + '.mpileup.lsfout.log',
+        lsferrfile = MPILEUPOUT + EXP + '.mpileup.lsferr.log',
+        scratch = config['tools']['createMpileup']['scratch'],
+        mem = config['tools']['createMpileup']['mem'],
+        time = config['tools']['createMpileup']['time']
+    benchmark:
+        SCIPHIOUT + MPILEUPOUT + EXP + '.mpileup.benchmark'
+    threads:
+        1
+    shell:
+        '{config[tools][createMpileup][call]} {input} {output.mpileup} {output.fileNames} {output.regions}' 
+
+localrules: createTumorNames
+rule createTumorNames:
+    input:
+        'sample_mapping.txt'
+    output:
+        names = FINALBAMOUTDIR + '{experiment}_tumor_bamFileNames.txt',
+    shell:
+        'awk \'{{print "' + REALIGNINDELSOUT + '"$2".bam"}}\' {input} >  {output}'
+
+localrules: createTumorNames2
+ruleorder: createTumorNames > createTumorNames2 > createTumorBamFileSummary
+rule createTumorNames2:
+    input:  
+        names = FINALBAMOUTDIR + EXP + '_tumor_bamFileNames.txt',
+    output:
+        files = expand(FINALBAMOUTDIR + '{sample}.bam', sample = SAMPLENAMES)
+    shell:
+        'cat {input} | xargs touch'
+        
+rule sciphi_panel:
+    input:
+        ref = config['resources'][ORGANISM]['reference'],
+        regions = config['tools']['sciphi']['exRegions'],
+        mpileup = temp(MPILEUPOUT + '{experiment}_tumor_complete.mpileup'),
+        fileNames = SCIPHIOUT + '{experiment}_tumor_bamFileNames.txt'
+    output:
+        tsv = SCIPHIOUT + '{run}/{experiment}_mut2Sample.tsv',
+        probs = SCIPHIOUT + '{run}/{experiment}.probs',
+        gv = SCIPHIOUT + '{run}/{experiment}.gv',
+        params = SCIPHIOUT + '{run}/{experiment}.params.txt',
+        vcf = SCIPHIOUT + '{run}/{experiment}.vcf'
+    params:
+        lsfoutfile = SCIPHIOUT + '{run}/{experiment}.lsfout.log',
+        lsferrfile = SCIPHIOUT + '{run}/{experiment}.lsferr.log',
+        scratch = config['tools']['sciphi']['scratch'],
+        mem = config['tools']['sciphi']['mem'],
+        time = config['tools']['sciphi']['time'],
+        outShort = SCIPHIOUT + '{run}/{experiment}_short',
+        outBestShort = SCIPHIOUT + '{run}/{experiment}_short/best_index',
+        outIndexShort = SCIPHIOUT + '{run}/{experiment}/index_short',
+        out = SCIPHIOUT + '{run}/{experiment}',
+        outIndex = SCIPHIOUT + '{run}/{experiment}/index'
+    benchmark:
+        SCIPHIOUT + '{run}/{experiment}.benchmark'
+    threads:
+        1
+    log:
+        SCIPHIOUT + '{run}/{experiment}.log'
+    shell:
+        ('{config[tools][sciphi][call]} ' +
+        '-o {params.outShort} ' +
+        '--ol {params.outIndexShort} ' +
+        '-i {input.ref} ' +
+        '--in {input.fileNames} ' +
+        '--me {input.regions} ' +
+        '--lz 0 ' + 
+        '--zyg 0.1 ' + 
+        '--seed {wildcards.run} ' +
+        '-l 1000000 ' +
+        '--ls 1 ' +
+        '--ur 1 ' +
+        '-e 0 ' +
+        '--ese 0 ' +
+        '--sub 0.0000005 ' +
+        '{input.mpileup}; ' +
+        '{config[tools][sciphi][call]} ' +
+        '-o {params.out} ' +
+        '--il {params.outBestShort} ' +
+        '--ol {params.outIndex} ' +
+        '-i {input.ref} ' +
+        '--in {input.fileNames} ' +
+        '--me {input.regions} ' +
+        '--lz 1 ' + 
+        '--seed {wildcards.run} ' +
+        '-l 5000000 ' +
+        '--ls 500000 ' +
+        '--sub 0.0000005 ' +
+        '{input.mpileup}')
+

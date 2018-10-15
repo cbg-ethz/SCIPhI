@@ -1,0 +1,55 @@
+{
+    "resources":{
+        "H_sapiens_hg19":{
+            "reference": "../../data/ucsc.hg19.fasta",
+            "referenceFai": "../../data/ucsc.hg19.fasta.fai",
+            "referenceDict": "../../data/ucsc.hg19.dict",
+            "regions" :"",
+            "1000G_indels": "../../data/1000G_phase1.indels.hg19.sites.vcf",
+            "Mills_indels": "../../data/Mills_and_1000G_gold_standard.indels.hg19.sites.vcf",
+            "bwaIndex": "../../data/ucsc.hg19.fasta"
+        },
+    },
+    "tools":{
+        "createMpileup":{
+            "call": "python3 ../createMpileup.py ",
+            "scratch": "10000",
+            "mem": "10000",
+            "time": "30",
+            "threads": 1
+        },
+        "monovar": {
+            "activate" : "",
+            "call" : "path/to/monovar.py",
+            "params" : "-p 0.002 -a 0.2 -t 0.05 -m 2",
+            "scratch": "10000",
+            "mem": "10000",
+            "time": "4200",
+            "threads": 1
+        },
+        "sciphi": {
+            "call" : "path/to/git/SCIPhI_nm/build/sciphi",
+            "exRegions" : "patient9ovarian.bed",
+            "params" : "-t s -r 1 -l 1000000 -g 1 -e 0.2",
+            "scratch": "4000",
+            "mem": "4000",
+            "time": "1000",
+            "threads": 1
+        },
+        "sciphiToHeatMap": {
+            "call1" : "path/to/git/SCIPhI_nm/build/convertTree2Map",
+            "call2" : "Rscript path/to/git/SCIPhI_nm/benchmark/createSCIPhITreeHeatMap.R"
+        },
+        "monovarToHeatMap": {
+            "call1" : "python3 /path/to/git/SCIPhI_nm/benchmark/monovarToMap.py",
+            "call2" : "Rscript /path/to/git/SCIPhI_nm/benchmark/createSCIPhITreeHeatMap.R"
+        },
+        "sciphiOverviewGraph": {
+            "call1" : "python3 path/to/git/SCIPhI_nm/benchmark/createOverviewGraph.py",
+            "call2" : "dot"
+        },
+        "monovarCluster": {
+            "call" : "Rscript path/to/git/SCIPhI_nm/benchmark/createMonovarCluster.r"
+        }
+    }
+}
