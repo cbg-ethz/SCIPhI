@@ -38,6 +38,7 @@ ggplot(data = df, aes(x = cpn, y = recall, fill = tool)) +
         legend.text.align = 0,
         text = element_text(size=25),
         legend.key.size = unit(3., 'lines'))+
+
   scale_color_manual(values = c("firebrick3", "steelblue")) +
   scale_fill_manual(values = c("firebrick3", "steelblue"), labels=c("Monovar", expression(paste("SCI", Phi))))
 ggsave(paste(gsub(".txt","",inputName), "_rec.pdf", sep=""))
@@ -55,6 +56,7 @@ ggplot(data = df, aes(x = cpn, y = precision, fill = tool)) +
         legend.key.size = unit(3., 'lines')) +
   scale_color_manual(values = c("firebrick3", "steelblue")) +
   scale_fill_manual(values = c("firebrick3", "steelblue"), labels=c("Monovar", expression(paste("SCI", Phi))))
+
 ggsave(paste(gsub(".txt","",inputName), "_pre.pdf", sep=""))
 
 ggplot(data = df, aes(x = cpn, y = f1, fill = tool)) +
@@ -64,10 +66,12 @@ ggplot(data = df, aes(x = cpn, y = f1, fill = tool)) +
   ylab("F1 score") +
   scale_y_continuous(limits = c(min(0.6, df$f1 - 0.01), 1)) +
   theme(legend.position = c(0.2, 0.2),
+
         legend.title=element_blank(),
         legend.text.align = 0,
         text = element_text(size=25),
         legend.key.size = unit(3., 'lines')) +
   scale_color_manual(values = c("firebrick3", "steelblue")) +
   scale_fill_manual(values = c("firebrick3", "steelblue"), labels=c("Monovar", expression(paste("SCI", Phi))))
+
 ggsave(paste(gsub(".txt","",inputName), "_f1.pdf", sep=""))

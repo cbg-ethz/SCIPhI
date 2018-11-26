@@ -27,12 +27,14 @@ df <- read.table(inputName, header = TRUE)
 df$vio <- as.factor(df$vio)
 df$tool <- factor(df$tool, levels = c("Monovar", "SCIPhI"))
 
+
 ggplot(data = df, aes(x = vio, y = recall, fill = tool)) + 
   geom_point(position = position_jitterdodge(jitter.width = 1), aes(colour = tool), show.legend = FALSE) +
   geom_boxplot(outlier.size = NULL, outlier.shape = NA, alpha = 0.5) +
   xlab("Fraction of violations") +
   ylab("Recall") +
   scale_y_continuous(limits = c(min(0.5, df$recall - 0.01), 1)) +
+
   theme(legend.title=element_blank(),
         legend.position = c(0.2, 0.2),
         text = element_text(size=25),
@@ -70,4 +72,5 @@ ggplot(data = df, aes(x = vio, y = f1, fill = tool)) +
         legend.key.size = unit(3., 'lines')) +
   scale_color_manual(values = c("firebrick3", "steelblue")) +
   scale_fill_manual(values = c("firebrick3", "steelblue"), labels=c("Monovar", expression(paste("SCI", Phi))))
+
 ggsave(paste(gsub(".txt","",inputName), "_f1.pdf", sep=""))

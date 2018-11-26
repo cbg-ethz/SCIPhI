@@ -74,4 +74,5 @@ ggplot(data = df, aes(x = alpha, y = f1, fill = tool, alpha = cells)) +
   guides(alpha=guide_legend(override.aes=list(fill=hcl(c(15,195),100,0,alpha=c(0.1, 0.55, 1)),
                                               colour=NA))) +
   theme(legend.text.align = 0)
+
 ggsave(paste(gsub(".txt","",inputName), "_f1.pdf", sep=""), width = 14, height = 7)

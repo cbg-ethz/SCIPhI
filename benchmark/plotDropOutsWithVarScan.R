@@ -28,6 +28,7 @@ df <- read.table(inputName, header = TRUE)
 df$drop <- as.factor(df$drop)
 df$tool <- factor(df$tool, levels = c("varscan", "Monovar", "SCIPhI"))
 
+
 ggplot(data = df, aes(x = drop, y = recall, fill = tool)) +
   geom_point(position = position_jitterdodge(jitter.width = 1), aes(colour = tool),  show.legend = FALSE) +
   geom_boxplot(outlier.size = NULL, outlier.shape = NA, alpha = 0.5) +
