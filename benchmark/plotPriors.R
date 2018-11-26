@@ -30,7 +30,7 @@ df$tool <- as.character(df$tool)
 
 tool_names <- list(
   'Monovar'="Monovar",
-  'SCIPhy'=expression(paste("SCI", Phi))
+  'SCIPhI'=expression(paste("SCI", Phi))
 )
 tool_labeller <- function(variable,value){
   return(tool_names[value])
@@ -43,6 +43,8 @@ ggplot(data = df, aes(x = prior, y = recall, fill = tool)) +
   ylab("Recall") +
   facet_grid(.~tool, scales = "free_x", labeller=tool_labeller) +
   guides(fill = "none") +
+  scale_color_manual(values = c("firebrick3", "steelblue")) +
+  scale_fill_manual(values = c("firebrick3", "steelblue")) +
   theme(text = element_text(size=25),
         axis.text.x=element_text(angle=45,hjust=1))
   #scale_fill_discrete("", labels=c("Monovar", expression(paste("SCI", Phi))))
@@ -56,6 +58,8 @@ ggplot(data = df, aes(x = prior, y = precision, fill = tool)) +
   expand_limits(y=0.9) +
   facet_grid(.~tool, scales = "free_x", labeller=tool_labeller) +
   guides(fill = "none") +
+  scale_color_manual(values = c("firebrick3", "steelblue")) +
+  scale_fill_manual(values = c("firebrick3", "steelblue")) +
   theme(text = element_text(size=25),
         axis.text.x=element_text(angle=45,hjust=1))
 ggsave(paste(gsub(".txt","",inputName), "_pre.pdf", sep=""))
@@ -67,6 +71,8 @@ ggplot(data = df, aes(x = prior, y = f1, fill = tool)) +
   ylab("F1 score") +
   facet_grid(.~tool, scales = "free_x", labeller=tool_labeller) +
   guides(fill = "none") +
+  scale_color_manual(values = c("firebrick3", "steelblue")) +
+  scale_fill_manual(values = c("firebrick3", "steelblue")) +
   theme(text = element_text(size=25),
         axis.text.x=element_text(angle=45,hjust=1))
 ggsave(paste(gsub(".txt","",inputName), "_f1.pdf", sep=""))

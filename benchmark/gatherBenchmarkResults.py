@@ -45,7 +45,7 @@ for file in files:
     prior = fileSplit[baseDir + 7].split("_")[1]
     tool = fileSplit[baseDir + 8]
     if tool == "sciphi":
-        tool = "SCIPhy"
+        tool = "SCIPhI"
     if tool == "monovar":
         tool = "Monovar"
     out.append(numCells)
