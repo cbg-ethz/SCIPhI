@@ -18,29 +18,36 @@
 # along with SCIPhI. If not, see <http://www.gnu.org/licenses/>.
 # 
 # @author: Jochen Singer
-
-#! Rscript
-
-library(ggplot2)
-library(reshape)
-
 args <- commandArgs(trailingOnly = TRUE)
 inputName <- args[1]
 outputName <- args[2]
 
-header <- readLines(inputName, 1)
-header <- unlist(strsplit(header, '\t'))[-1]
-header <- gsub(header, pattern = '.bam', replacement = '')
+library(ComplexHeatmap)
+library(circlize)
+library(dplyr)
+library(gplots)
+library(ggplot2)
+library(reshape)
+library(ggdendro)
 
 df <- read.table(inputName, header = TRUE)
-sciphiDist <- data.matrix(df)
-meltData <- melt(t(sciphiDist[,-1]))
+df <- df %>% dplyr::select_if(function(X) sum(!is.na(X))>=1)
+df = data.matrix(df[,-1])
+df[df=="NaN"]<-0.5
+monovarDist <- df
 
-dict <- data.frame(label = header, lookup = names(df)[-1])
-meltData$X1 <- dict$label[match(meltData$X1, dict$lookup)]
+ht2 <-heatmap.2(monovarDist,
+          labRow = "",
+          dendrogram = "both",
+          trace = "none",
+          col = colorRampPalette(c("white", "steelblue")))
 
-
-resultPlot <- ggplot(meltData, aes(X1,X2, fill=value)) +
+mono = data.frame(monovarDist[rev(ht2$rowInd),ht2$colInd])
+header <- colnames(mono)
+header <- unlist(strsplit(header, '\t'))
+header <- gsub(header, pattern = '.bam', replacement = '')
+meltMono = melt(t(mono))
+plot.dd <- ggplot(meltMono,  aes(X1,X2, fill=value)) +
   scale_fill_gradient(name = expression("P"[m]),
                     low = "white",
                     high = "steelblue",
@@ -59,10 +66,15 @@ resultPlot <- ggplot(meltData, aes(X1,X2, fill=value)) +
         legend.direction="vertical",
         legend.box='horizontal',
         #plot.background = element_rect(fill = "transparent",colour = NA),
-        #axis.text.x = element_text("",margin=margin(-20,0,0,0)),
-        axis.title.x=element_text("",margin=margin(-3,0,0,0)),
-        axis.text.x=element_blank(),
+        axis.text.x = element_text("",margin=margin(-20,0,0,0)),
+        #axis.title.x=element_text("",margin=margin(-3,0,0,0)),
+        #axis.text.x=element_blank(),
         #axis.ticks.y=element_blank(),
         axis.ticks.x=element_blank())
 
-ggsave(outputName)
+dendro.plot <- ggdendrogram(data = ht2$colDendrogram) + theme_void()
+pdf(outputName)
+grid.newpage()
+print(plot.dd, vp = viewport(x = 0.5, y = .45, width = 1.0, height = 0.9))
+print(dendro.plot, vp = viewport(x = 0.48, y = .918, width = 0.712, height = 0.15))
+dev.off()

@@ -25,18 +25,21 @@ args <- commandArgs(TRUE)
 inputName <- args[1]
 df <- read.table(inputName, header = TRUE)
 df$vio <- as.factor(df$vio)
+df$tool <- factor(df$tool, levels = c("Monovar", "SCIPhI"))
+
 ggplot(data = df, aes(x = vio, y = recall, fill = tool)) + 
   geom_point(position = position_jitterdodge(jitter.width = 1), aes(colour = tool), show.legend = FALSE) +
   geom_boxplot(outlier.size = NULL, outlier.shape = NA, alpha = 0.5) +
   xlab("Fraction of violations") +
   ylab("Recall") +
-  scale_y_continuous(limits = c(0.5, 1)) +
+  scale_y_continuous(limits = c(min(0.5, df$recall - 0.01), 1)) +
   theme(legend.title=element_blank(),
         legend.position = c(0.2, 0.2),
         text = element_text(size=25),
         legend.text.align = 0,
         legend.key.size = unit(3., 'lines')) +
-  scale_fill_discrete("", labels=c("Monovar", expression(paste("SCI", Phi))))
+  scale_color_manual(values = c("firebrick3", "steelblue")) +
+  scale_fill_manual(values = c("firebrick3", "steelblue"), labels=c("Monovar", expression(paste("SCI", Phi))))
 ggsave(paste(gsub(".txt","",inputName), "_rec.pdf", sep=""))
   
 ggplot(data = df, aes(x = vio, y = precision, fill = tool)) + 
@@ -50,7 +53,8 @@ ggplot(data = df, aes(x = vio, y = precision, fill = tool)) +
         text = element_text(size=25),
         legend.text.align = 0,
         legend.key.size = unit(3., 'lines')) +
-  scale_fill_discrete("", labels=c("Monovar", expression(paste("SCI", Phi))))
+  scale_color_manual(values = c("firebrick3", "steelblue")) +
+  scale_fill_manual(values = c("firebrick3", "steelblue"), labels=c("Monovar", expression(paste("SCI", Phi))))
 ggsave(paste(gsub(".txt","",inputName), "_pre.pdf", sep=""))
 
 ggplot(data = df, aes(x = vio, y = f1, fill = tool)) + 
@@ -58,11 +62,12 @@ ggplot(data = df, aes(x = vio, y = f1, fill = tool)) +
   geom_boxplot(outlier.size = NULL, outlier.shape = NA, alpha = 0.5) +
   xlab("Fraction of violations") +
   ylab("F1 score") +
-  scale_y_continuous(limits = c(0.6, 1)) +
+  scale_y_continuous(limits = c(min(0.6, df$f1 - 0.01), 1)) +
   theme(legend.title=element_blank(),
         legend.position = c(0.2, 0.2),
         text = element_text(size=25),
         legend.text.align = 0,
         legend.key.size = unit(3., 'lines')) +
-  scale_fill_discrete("", labels=c("Monovar", expression(paste("SCI", Phi))))
+  scale_color_manual(values = c("firebrick3", "steelblue")) +
+  scale_fill_manual(values = c("firebrick3", "steelblue"), labels=c("Monovar", expression(paste("SCI", Phi))))
 ggsave(paste(gsub(".txt","",inputName), "_f1.pdf", sep=""))
