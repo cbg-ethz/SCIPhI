@@ -359,7 +359,6 @@ std::vector<std::vector<int>> assignMutationToNodesSampleTree(std::vector<unsign
                 nodeId = getRandomNodeId(treeStructure, options);
                 nodeIdTwo = getRandomNodeId(treeStructure, options);
             }
-            std::cout << "rec: " << nodeId << " " << nodeIdTwo << std::endl;
             assignMutation(mutationToNodeAssignment, treeStructure, childVector, nodeId, i, mutType, numMutsPerNode, options);
             assignMutation(mutationToNodeAssignment, treeStructure, childVector, nodeIdTwo, i, mutType, numMutsPerNode, options);
         }
@@ -371,7 +370,6 @@ std::vector<std::vector<int>> assignMutationToNodesSampleTree(std::vector<unsign
                 nodeId = getRandomNodeId(treeStructure, options);
                 nodeIdTwo = getRandomNodeId(treeStructure, options);
             }
-            std::cout << "loss: " << nodeId << " " << nodeIdTwo << std::endl;
             assignMutation(mutationToNodeAssignment, treeStructure, childVector, nodeId, i, mutType, numMutsPerNode, options);
             assignMutation(mutationToNodeAssignment, treeStructure, childVector, nodeIdTwo, i, 0, numMutsPerNode, options);
         }
