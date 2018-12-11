@@ -92,7 +92,7 @@ int readParameters(Config<TTreeType> & config, int argc, char* argv[]){
 		("ls", boost::program_options::value<decltype(config.sampleLoops)>(&config.sampleLoops), "Number of sample iterations. [100000]")
 		("pr", boost::program_options::value<decltype(config.priorMutationRate)>(&config.priorMutationRate), "Prior mutation rate [0.0001].")
 		("uniq,u", boost::program_options::value<decltype(config.uniqTreshold)>(&config.uniqTreshold), "Filter mutations showing up to this number of cells showing the mutations. [0]")
-		(",e", boost::program_options::value<decltype(config.paramsEstimateRate)>(&config.paramsEstimateRate), "Paramter estimation rate, i.e. the frection of loops used to estimate the different parameters. [0.2]")
+		(",e", boost::program_options::value<decltype(config.paramsEstimateRate)>(&config.paramsEstimateRate), "Paramter estimation rate, i.e. the fraction of loops used to estimate the different parameters. [0.2]")
         ("ur",boost::program_options::value<double>(&std::get<1>(config.dataUsageRate)), "Data usage rate increment steps. [0.1]")
 		("seed", boost::program_options::value<decltype(config.fixedSeed)>(&config.fixedSeed), "Seed for the random number generator. [42]")
 		(",t", boost::program_options::value<decltype(config.scoreType)>(&config.scoreType), "Tree score type [m (max), s (sum)]. [s]")
