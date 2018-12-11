@@ -99,7 +99,7 @@ int readParameters(Config<TTreeType> & config, int argc, char* argv[]){
 		("wildOverDis", boost::program_options::value<double>(&std::get<0>(config.params[0])), "Overdispersion for wild type. [100]")
 		("mutationOverDis", boost::program_options::value<double>(&std::get<0>(config.params[1])), "Overdispersion for mutant type. [2]")
 		("wildMean", boost::program_options::value<double>(&std::get<0>(config.params[2])), "Mean error rate. [0.001]")
-		("md", boost::program_options::value<decltype(config.minDist)>(&config.minDist), "Window size for maximum number of allowed mutations. [10]")
+		("md", boost::program_options::value<decltype(config.minDist)>(&config.minDist), "Window size for maximum number of allowed mutations. [1]")
 		("sub", boost::program_options::value<decltype(config.sub)>(&config.sub), "PCR substitution rate. [0]")
 		("mmw", boost::program_options::value<decltype(config.maxMutPerWindow)>(&config.maxMutPerWindow), "Maximum number of mutations allowed per window. [1]")
 		("cwm", boost::program_options::value<decltype(config.numCellWithMutationMin)>(&config.numCellWithMutationMin), "Number of cells requiered to have a mutation in order to be called. [1]")
