@@ -85,7 +85,7 @@ int readParameters(Config<TTreeType> & config, int argc, char* argv[]){
 		("me", boost::program_options::value<decltype(config.mutationExclusionFileName)>(&config.mutationExclusionFileName), "Filename of mutations to exclude during the sequencing error rate estimation (VCF format).")
 		("in", boost::program_options::value<decltype(config.bamFileNames)>(&config.bamFileNames), "Name of the BAM files used to create the mpileup.")
 		(",o", boost::program_options::value<decltype(config.outFilePrefix)>(&config.outFilePrefix), "Prefix of output files.")
-		(",r", boost::program_options::value<decltype(config.reps)>(&config.reps), "Number of repetitions. [1]")
+		//(",r", boost::program_options::value<decltype(config.reps)>(&config.reps), "Number of repetitions. [1]")
 		(",l", boost::program_options::value<decltype(config.loops)>(&config.loops), "Maximal number of iterations per repetition. [1000000]")
 		("lz", boost::program_options::value<decltype(config.learnZygocity)>(&config.learnZygocity), "Set to 1 if zygocity should be learned. [0]")
 		("zyg", boost::program_options::value<double>(&std::get<0>(config.params[Config<TTreeType>::nu])), "Zygosity rate. [0]")
