@@ -240,9 +240,6 @@ writeVCF(Config<SampleTree> const & config,
     writeVCFHeader(config, outFile);
 
     // create a map to sort the mutations according to chromosome and position
-    
-    std::cout << "TEST: " << config.indexToPosition.size() << std::endl;
-
     std::map<std::pair<std::string, unsigned>, std::vector<unsigned>> posMap;
     for (unsigned i = 0; i < config.indexToPosition.size(); ++i)
     {
@@ -258,7 +255,6 @@ writeVCF(Config<SampleTree> const & config,
         }
     }
 
-    std::cout << "Test2: " << posMap.size() << std::endl;
     for (auto it = posMap.begin(); it != posMap.end(); ++it)
     {
         writeVCFEntry(outFile, config, it->second);
