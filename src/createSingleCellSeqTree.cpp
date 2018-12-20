@@ -514,9 +514,7 @@ insertDropOuts(std::vector<std::vector<int>> const & mutationToSample, Options c
                 }
                 if (mutationToSampleWithDropouts[i][j] < 0 || mutationToSampleWithDropouts[i][j] >= 6)
                 {
-                    std::cout << "0: " << mutationToSampleWithDropouts[i][j] << std::endl;
                     mutationToSampleWithDropouts[i][j] = copyNumberDropOut(mutationToSampleWithDropouts[i][j], options);
-                    std::cout << "1: " << mutationToSampleWithDropouts[i][j] << std::endl;
                 }
             }
         }
@@ -676,9 +674,6 @@ int main(int argc, const char* argv[]){
     // were errors and 0 if there were none.
     if (res != ArgumentParser::PARSE_OK)
         return res == ArgumentParser::PARSE_ERROR;
-
-    //std::cout << "create_single_cell_seq_tree\n"
-    //          << "================\n\n";
 
     srand(options.seed + 2); // srand(1) is reserved
 
