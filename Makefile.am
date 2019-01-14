@@ -1,4 +1,4 @@
-bin_PROGRAMS = sciphi convertTree2Map createSingleCellTree sciphi_test
+bin_PROGRAMS = sciphi # convertTree2Map createSingleCellTree sciphi_test
 
 sciphi_SOURCES = \
 	src/findBestTrees.cpp
