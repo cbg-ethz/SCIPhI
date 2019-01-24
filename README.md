@@ -17,6 +17,10 @@ SCIPhI has the **following dependencies** which need to be installed:
 * `DLIB >= 19.9`
 * `zlib`
 
+Clone SCIPhI with submodules from the soucre code:
+
+`git clone --recurse-submodules https://github.com/cbg-ethz/SCIPhI.git`
+
 In order to install SCIPhI issue the following commands in the github directory:
 
 `autoreconf -vif`
@@ -25,7 +29,7 @@ In order to install SCIPhI issue the following commands in the github directory:
 
 `make`
 
-An alternative is to use CMake (tested with version 3.11.1). Simply issue the commands:
+An alternative is to use CMake (tested with version >= 3.11.1). Simply issue the commands:
 
 `mkdir build`
 
