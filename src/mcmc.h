@@ -236,8 +236,8 @@ updateMutInSampleCounts(Config<SampleTree> & config)
         breadth_first_search(config.getTree(), num_vertices(config.getTree()) - 1, visitor(visBFS));
 
         // compute the probability of the tree to be in hetero- or homozygous state
-        double logPHet = scoreSum.hetScore() + std::log((1.0 - config.getParam(Config<SampleTree>::nu))) + std::log(config.getNumSamples() * 2 - 1);
-        double logPHom = scoreSum.homScore() + std::log( config.getParam(Config<SampleTree>::nu)) + std::log(config.getNumSamples() - 1);
+        double logPHet = scoreSum.hetScore() + std::log((1.0 - config.getParam(Config<SampleTree>::nu))) - std::log(config.getNumSamples() * 2 - 1);
+        double logPHom = scoreSum.homScore() + std::log( config.getParam(Config<SampleTree>::nu)) - std::log(config.getNumSamples() - 1);
         double logPD = addLogProb(logPHet, logPHom);
         logPHet -= logPD;
         logPHom -= logPD;
