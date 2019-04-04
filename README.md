@@ -53,4 +53,4 @@ Executing
 
 `sciphi -o result --in cellNames.txt --cwm 3 --nmc 2 --ms 3 --lz 1 --seed 42 example.mpileup`
 
-will run SCIPhI using the cell names provided in *cellNames.txt* (same order as in the mpileup file), requires that at least three cells show the mutation (*cwm*) and at least two cells (*nmc*) have a alternative read count support of at least 3 (*ms*). Note that *cellNames.txt* is a tab delimited file with the cell name in the first column and a cell type identifier in the second column. The cell type can be either *CT* for tumor cell or *BN* for control bulk normal.
+will run SCIPhI using the cell names provided in *cellNames.txt* (same order as in the mpileup file), requires that at least three cells show the mutation (*cwm*) and at least two cells (*nmc*) have a alternative read count support of at least 3 (*ms*). Note that *cellNames.txt* is a tab delimited file with the cell name in the first column and a cell type identifier in the second column. The cell type can be either *CT* (tumor cell), *CN* (control normal cell), or *BN* (control bulk normal).
