@@ -836,22 +836,29 @@ bool readMpileupFile(Config<TTreeType> & config)
         auto it = exMap.find(std::tuple<std::string, std::string>(splitVec[0], splitVec[1]));
         if (it == exMap.end())
         {
+            bool passedBulkNormalFilter = true;
             if (normalBulkPos != UINT_MAX)
             {
                 extractSeqInformation(normalBulkCounts, splitVec, normalBulkPos);
                 if (!passNormalFilter(normalBulkCounts, config))
                 {
-                    continue;
+                    passedBulkNormalFilter = false;
                 }
             }
             
+            bool passedSingleNormalFilter = true;
             if(normalCellPos.size() > 0)
             {
                 extractSeqInformation(countsNormal, splitVec, normalCellPos);
                 if (!passNormalCellCoverage(countsNormal, config))
                 {
-                    continue;
+                    passedSingleNormalFilter = false;
                 }
+            }
+
+            if (!passedBulkNormalFilter && !passedSingleNormalFilter)
+            {
+                continue;
             }
 
             extractSeqInformation(counts, splitVec, tumorCellPos);
@@ -875,9 +882,9 @@ bool readMpileupFile(Config<TTreeType> & config)
                     {
                         if (!passNormalCellFilter(countsNormal, j, config))
                         {
-                            continue;
                             positionMutated = true;
                             h0Wins = true;
+                            continue;
                         }
                     }
                     else if (config.normalCellFilter == 2)

@@ -604,10 +604,7 @@ Config<TTreeType>::updateContainers(unsigned currentLoop)
         }
         else
         {
-            std::cout << "numUniqMuts: " << this->numUniqMuts << std::endl;
             std::get<0>(this->dataUsageRate) += std::get<1>(this->dataUsageRate); // increase the data usage rate by a pre defined fraction
-            std::cout << "dataUsage<0>: " << std::get<0>(this->dataUsageRate) << " " << std::get<1>(this->dataUsageRate) << std::endl;
-            std::cout << this->getCompleteData()[0].size() << " " <<  this->numUniqMuts << std::endl;
             newDataSize = std::round(std::get<0>(this->dataUsageRate) * (this->getCompleteData()[0].size() - this->numUniqMuts));
         }
         std::cout << "newDataSize: " << newDataSize << " " << std::get<0>(this->dataUsageRate) * (this->getCompleteData()[0].size() - this->numUniqMuts) << std::endl;
@@ -643,12 +640,12 @@ Config<TTreeType>::printParameters(){
 
     std::cout << "num Samples:\t" << this->getNumSamples() << std::endl;
     std::cout << "total # mut:\t" << this->getCompleteData()[0].size() << "\tcurrently used:\t" << this->getNumMutations() << std::endl;
-    std::cout << "normal     - freq:    " << this->getParam(Config::wildMean) <<      " tmp:  " << this->getTmpParam(Config::wildMean) << " SD: " << this->getSDParam(Config::wildMean) << " count: " << this->getSDCountParam(Config::wildMean)  << " trails: " << this->getSDTrialsParam(Config::wildMean) << std::endl; 
-    std::cout << "normal     - overDis: " << this->getParam(Config::wildOverDis) << " tmp:  " << this->getTmpParam(Config::wildOverDis)<< " SD: " << this->getSDParam(Config::wildOverDis) << " count: " << this->getSDCountParam(Config::wildOverDis) << " trails: " << this->getSDTrialsParam(Config::wildOverDis) << std::endl;    
-    std::cout << "normla     - alpha:   " << this->getParam(Config::wildOverDis) * this->getParam(Config::wildMean) << " beta: " << this->getParam(Config::wildOverDis) - this->getParam(Config::wildMean) * this->getParam(Config::wildOverDis) << std::endl;
-    std::cout << "mutation   - overDis: " << this->getParam(Config::mutationOverDis) << " tmp:  " << this->getTmpParam(Config::mutationOverDis) << " SD: " << this->getSDParam(Config::mutationOverDis) << " count: " << this->getSDCountParam(Config::mutationOverDis) << " trails: " << this->getSDTrialsParam(Config::mutationOverDis) << std::endl;
+    std::cout << "normal     - freq:    " << this->getParam(Config::wildMean) << " SD: " << this->getSDParam(Config::wildMean) << " count: " << this->getSDCountParam(Config::wildMean)  << " trails: " << this->getSDTrialsParam(Config::wildMean) << std::endl; 
+    std::cout << "normal     - overDis: " << this->getParam(Config::wildOverDis) << " SD: " << this->getSDParam(Config::wildOverDis) << " count: " << this->getSDCountParam(Config::wildOverDis) << " trails: " << this->getSDTrialsParam(Config::wildOverDis) << std::endl;    
+    std::cout << "normal     - alpha:   " << this->getParam(Config::wildOverDis) * this->getParam(Config::wildMean) << " beta: " << this->getParam(Config::wildOverDis) - this->getParam(Config::wildMean) * this->getParam(Config::wildOverDis) << std::endl;
+    std::cout << "mutation   - overDis: " << this->getParam(Config::mutationOverDis) << " SD: " << this->getSDParam(Config::mutationOverDis) << " count: " << this->getSDCountParam(Config::mutationOverDis) << " trails: " << this->getSDTrialsParam(Config::mutationOverDis) << std::endl;
     std::cout << "mutation   - alpha: " << this->getParam(Config::mutationOverDis) * this->getParam(Config::mutationMean) << " beta: " << this->getParam(Config::mutationOverDis) - (0.5 -this->getParam(Config::wildMean) ) * this->getParam(Config::mutationOverDis) << std::endl;
-    std::cout << "drop: " << this->getParam(Config::mu) << " SD: " << this->getSDParam(Config::mu) << " count: " << this->getSDCountParam(Config::mu) << " trails: " << this->getSDTrialsParam(Config::mu) << std::endl;
+    std::cout << "drop: " << 1.0 - this->getParam(Config::mu) << " SD: " << this->getSDParam(Config::mu) << " count: " << this->getSDCountParam(Config::mu) << " trails: " << this->getSDTrialsParam(Config::mu) << std::endl;
     std::cout << "lambda: " << this->getParam(Config::nu) << " SD: " << this->getSDParam(Config::nu) << " count: " << this->getSDCountParam(Config::nu) << " trails: " << this->getSDTrialsParam(Config::nu) << std::endl;
     //std::cout << "lambda: " << this->getParam(Config::lambda) << " SD: " << this->getSDParam(Config::lambda) << " count: " << this->getSDCountParam(Config::lambda) << " trails: " << this->getSDTrialsParam(Config::lambda) << std::endl;
 
