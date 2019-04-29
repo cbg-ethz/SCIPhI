@@ -201,7 +201,7 @@ manageBestTrees(Config<SampleTree> & config,
     {   
         std::cout << "The new best score is: " <<  currTreeLogScore << std::endl;
         //save the current state to disk
-        writeIndex(config);
+        writeIndex(config, config.bestName);
         bestTreeLogScore = currTreeLogScore;
         bestTrees[0] = config.getTree();
         bestParams = config.params;
@@ -463,6 +463,10 @@ runMCMC(std::vector<typename Config<TTreeType>::TGraph> & bestTrees,
                     updateMutInSampleCounts(config);
                 }
                 config.updateParamsCounter();
+                if (config.sampling != 0 && it%config.sampling == 0)
+                {
+                    writeIndex(config, config.samplingName + std::to_string(it) + "/");
+                }
             }
         }
 	} 

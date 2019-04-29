@@ -246,8 +246,9 @@ class Config{
     std::string                                 mutationExclusionFileName;
     std::string                                 inFileName;
     std::string                                 loadName;
-    std::string                                 saveName;
+    std::string                                 lastName;
     std::string                                 bestName;
+    std::string                                 samplingName;
     std::string                                 mutToMaxName;
     std::vector<std::string>                    cellNames;
     std::vector<std::string>                    cellColours;
@@ -276,8 +277,8 @@ class Config{
     double                                      meanFilter;      
     unsigned                                    minCovNormalCell;
     unsigned                                    maxNumberNormalCellMutated;
+    unsigned                                    sampling;
     bool                                        useNormalCellsInTree;
-    //double mu;
 
 
 	Config() :
@@ -295,7 +296,6 @@ class Config{
                         TLearningParamsTuple{0.01, 0, 0},
                         TLearningParamsTuple{0.01, 0, 0}}},
         moveProbs{{0.64, 0.16, 0 , 0.2}},
-        //overDisInterval(5),
         generator(42),
         loops(1000000),
         reps(1),
@@ -330,6 +330,7 @@ class Config{
         meanFilter(0.25),
         minCovNormalCell(5),
         maxNumberNormalCellMutated(0),
+        sampling(0),
         useNormalCellsInTree(false)
     {};
 };

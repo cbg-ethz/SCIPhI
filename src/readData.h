@@ -813,8 +813,6 @@ bool readMpileupFile(Config<TTreeType> & config)
         estimateSeqErrorRate(config, exMap, errExMap, tumorCellPos, normalCellPos);
     }
 
-    std::ofstream ofs(config.outFilePrefix + "_posMutated.tsv");
-
     std::ifstream inputStream(config.inFileName, std::ifstream::in);
     std::string currentChrom = "";
     std::string currLine;
@@ -1011,10 +1009,6 @@ bool readMpileupFile(Config<TTreeType> & config)
                         if (numAffectetCells > 1)
                         {
                           data.push_back(TDataEntry(TPositionInfo(splitVec[0], std::stoi(splitVec[1]), splitVec[2][0], indexToChar(j)), tempCounts, logH1/logH0));
-                          //ofs << splitVec[0] << "\t" << splitVec[1] << "\t" <<  splitVec[2][0] << "\t" <<  indexToChar(j) << "\t";
-                          //for (auto it = tempCounts.begin(); it != tempCounts.end(); ++it)
-                          //    ofs << std::get<0>(*it) << "\t" << std::get<1>(*it) << "\t";
-                          //ofs<< "\n";
                         }
                         else
                         {
@@ -1035,7 +1029,7 @@ bool readMpileupFile(Config<TTreeType> & config)
     computeNoiseScore(config);
 
     insertData(config, data);
-    writeNucInfo(config);
+    writeNucInfo(config, config.bestName);
 
     return 0;
 }

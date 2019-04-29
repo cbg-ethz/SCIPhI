@@ -75,15 +75,17 @@ int readParameters(Config<TTreeType> & config, int argc, char* argv[]){
     boost::program_options::options_description generic("Generic options");
 	generic.add_options()("help,h", "Print this help");
 
+    std::string lastName; // Dummy for a deprecated option value
 	// configuration options
 	boost::program_options::options_description parseConfig("Configuration");
 	parseConfig.add_options()
 		("in", boost::program_options::value<decltype(config.bamFileNames)>(&config.bamFileNames), "Name of the BAM files used to create the mpileup.")
 		("il", boost::program_options::value<decltype(config.loadName)>(&config.loadName), "Directory from which to read intermediate results.")
-		("ol", boost::program_options::value<decltype(config.saveName)>(&config.saveName), "Directory to store the results of the last iteration. If desired, one can continue from here to explore more search space.")
 		("ex", boost::program_options::value<decltype(config.exclusionFileName)>(&config.exclusionFileName), "File name of exclusion list (VCF format), containing loci which should be ignored.")
 		("me", boost::program_options::value<decltype(config.mutationExclusionFileName)>(&config.mutationExclusionFileName), "File name of mutations to exclude during the sequencing error rate estimation (VCF format).")
 		(",o", boost::program_options::value<decltype(config.outFilePrefix)>(&config.outFilePrefix), "Prefix of output files.")
+		("ol", boost::program_options::value<decltype(config.lastName)>(&lastName), "This option is deprecated. The index will be saved in a folder specified with -o in \"last_index\". If desired, one can continue from here to explore more search space.")
+		("sa", boost::program_options::value<decltype(config.sampling)>(&config.sampling), "Sampling step. If a value x different from 0 is specified, every x iteration, after the burn in phase, an index will be writen to disk to provide a posterior sampling. [0]")
 		//(",r", boost::program_options::value<decltype(config.reps)>(&config.reps), "Number of repetitions. [1]")
 		(",l", boost::program_options::value<decltype(config.loops)>(&config.loops), "Maximal number of iterations before sampling form the posterior distribution of the mutation to cell assignment. [1000000]")
 		("ls", boost::program_options::value<decltype(config.sampleLoops)>(&config.sampleLoops), "Number of iterations in which the mutation to cell assignment is sampled. [100000]")
@@ -170,6 +172,8 @@ int readParameters(Config<TTreeType> & config, int argc, char* argv[]){
         
     config.inFileName = global_options["input-file"].as<std::string>();
     config.bestName = config.outFilePrefix + "/best_index/";
+    config.lastName = config.outFilePrefix + "/last_index/";
+    config.samplingName = config.outFilePrefix + "/sample_index";
 
     std::get<1>(config.params[0]) = std::get<0>(config.params[0]);
     std::get<1>(config.params[1]) = std::get<0>(config.params[1]);
@@ -228,7 +232,6 @@ int main(int argc, char* argv[])
         return 0;
     }
     
-
 	std::vector<typename TConfig::TGraph> optimalTrees;         // list of all optimal trees (as ancestor matrices)
     std::array<std::tuple<double, double>, 6> optimalParams;    // The optimal parameters
 	std::vector<std::vector<unsigned>> sampleTrees;             // list where tree samples are stored, if sampling based on posterior distribution is needed

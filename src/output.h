@@ -261,19 +261,19 @@ writeVCF(Config<SampleTree> const & config,
     }
 }
 
-void writeTree(Config<SampleTree> const & config)
+void writeTree(Config<SampleTree> const & config, std::string const & dir)
 {
-    std::ofstream ofs(config.bestName + "/tree.gv");
+    std::ofstream ofs(dir + "/tree.gv");
     write_graphviz(ofs, config.getTree(), my_label_writer_complete(config.getTree()));
     ofs.close();
 }
 
-void writeNucInfo(Config<SampleTree> const & config)
+void writeNucInfo(Config<SampleTree> const & config, std::string const & dir)
 {
-    string makeDir = "mkdir -p " + config.bestName;
+    string makeDir = "mkdir -p " + dir;
     std::system(makeDir.c_str());
     std::ofstream outFile;
-    outFile.open(config.bestName + "/nuc.tsv");
+    outFile.open(dir + "/nuc.tsv");
     
     outFile << "=numSamples=" << "\n";
     outFile << config.getNumSamples() << "\n";
@@ -337,19 +337,21 @@ void writeNucInfo(Config<SampleTree> const & config)
     outFile.close();
 }
 
-void writeIndex(Config<SampleTree> const & config)
+void writeIndex(Config<SampleTree> const & config, std::string const & dir)
 {
-    if (config.bestName != "")
-    {
-        writeNucInfo(config);
-        writeTree(config);
-    }
+    writeNucInfo(config, dir);
+    writeTree(config, dir);
+}
+
+void writeBestIndex(Config<SampleTree> const & config)
+{
+        writeNucInfo(config, config.bestName);
+        writeTree(config, config.bestName);
 }
 
 void writeFinalIndex(Config<SampleTree> & config)
 {
-    config.bestName = config.saveName;
-    writeIndex(config);
+    writeIndex(config, config.lastName);
 }
 
 template <typename TTreeType>
