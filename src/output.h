@@ -22,6 +22,7 @@
  */
 
 #include "sciphi_config.h"
+#include "version.h"
 
 #ifndef OUTPUT_H_
 #define OUTPUT_H_
@@ -87,7 +88,7 @@ writeVCFHeader(Config<SampleTree> const & config,
     auto tm = *std::localtime(&t);
     //outFile << "##fileDate=" << std::put_time(&tm, "%d-%m-%Y") <<"\n";
     
-    outFile << "##source=SCATE\n";
+    outFile << "##source=SCIPhI" << "SCIPhI v" << VERSION_MAJOR << "." << VERSION_MINOR << "." << VERSION_PATCH << "-" << VERSION_STRING << "\n";
     outFile << "##FILTER=<ID=LowQual,Description=\"Low quality\">\n";
     outFile << "##INFO=<ID=DP,Number=1,Type=Integer,Description=\"Approximate read depth; some reads may have been filtered\">\n";
     outFile << "##FORMAT=<ID=AD,Number=.,Type=Integer,Description=\"Allelic depths for alt alleles\">\n";
