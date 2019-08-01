@@ -39,6 +39,7 @@
 #include "mcmc.h"
 #include "readData.h"
 #include "output.h"
+#include "version.h"
 
 #include <boost/multi_array.hpp>
 #include <boost/program_options.hpp>
@@ -191,6 +192,7 @@ int main(int argc, char* argv[])
 	TConfig config{};
 	
     // read the command line arguments
+    std::cout << "SCIPhI v" << VERSION_MAJOR << "." << VERSION_MINOR << "." << VERSION_PATCH << "-" << VERSION_STRING << std::endl;
     std::cout << "Reading the config file: ... " << std::flush;
 	readParameters(config, argc, argv);
     std::cout << "done!" << std::endl;
