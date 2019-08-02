@@ -303,6 +303,24 @@ readExclusionList(std::set<std::tuple<std::string, std::string>> & exMap,
     }
 }
 
+std::set<std::tuple<std::string, std::string, std::string, std::string>>
+readInclusionVCF(std::string const & fileName)
+{
+    std::set<std::tuple<std::string, std::string, std::string, std::string>> incMap;
+    std::ifstream inputStream(fileName);
+    std::string currLine;                    // line currently processed
+    std::vector<std::string> splitVec;  // vector storing the words in currLine dived by a tab
+    while (std::getline(inputStream, currLine))
+    {
+        if (currLine[0] != '#')
+        {
+            boost::split(splitVec, currLine, boost::is_any_of("\t"));
+            incMap.insert(std::make_tuple(splitVec[0], splitVec[1], splitVec[3], splitVec[4]));
+        }
+    }
+    return incMap;
+}
+
 template <typename TTreeType>
 void
 readCellNames(Config<TTreeType> & config)
@@ -787,6 +805,9 @@ bool readMpileupFile(Config<TTreeType> & config)
     // determine which positions to skip during the error rate estimation
     std::set<std::tuple<std::string, std::string>> errExMap;
     readExclusionList(errExMap, config.mutationExclusionFileName);
+
+    // determine which variants to keep
+    auto incMap = readInclusionVCF(config.variantInclusionFileName);
     
     TData data;
 
@@ -865,20 +886,20 @@ bool readMpileupFile(Config<TTreeType> & config)
             applyCoverageFilterPerCell(filteredCounts, config);
 
             bool positionMutated = false;
-            for (unsigned short j = 0; j < 4; ++j)
+            for (unsigned short altAlleleIdx = 0; altAlleleIdx < 4; ++altAlleleIdx)
             {
-                if(j == charToIndex(splitVec[2][0]))
+                if(altAlleleIdx == charToIndex(splitVec[2][0]))
                 {
                     continue;
                 }
-                bool h0Wins = !applyFilterAcrossCells(filteredCounts, config, j);
+                bool h0Wins = !applyFilterAcrossCells(filteredCounts, config, altAlleleIdx);
               
                 if(normalCellPos.size() > 0)
                 {
                     // use the normal cell filter
                     if (config.normalCellFilter == 1)
                     {
-                        if (!passNormalCellFilter(countsNormal, j, config))
+                        if (!passNormalCellFilter(countsNormal, altAlleleIdx, config))
                         {
                             positionMutated = true;
                             h0Wins = true;
@@ -894,7 +915,7 @@ bool readMpileupFile(Config<TTreeType> & config)
                                 countsNormal,
                                 cellsNotMutatedNormal,
                                 cellsMutatedNormal,
-                                j,
+                                altAlleleIdx,
                                 false);
 
                         if (!h0WinsNormal)
@@ -924,7 +945,7 @@ bool readMpileupFile(Config<TTreeType> & config)
                             filteredCounts,
                             cellsNotMutated,
                             cellsMutated,
-                            j,
+                            altAlleleIdx,
                             true);
                 }
 
@@ -940,7 +961,7 @@ bool readMpileupFile(Config<TTreeType> & config)
                 }
                 
 
-                if (logH1 > logH0)
+                if (logH1 > logH0 || incMap.count(std::make_tuple(splitVec[0], splitVec[1], splitVec[2], std::string(1, indexToChar(altAlleleIdx)))))
                 {
                     positionMutated = true;
 
@@ -950,7 +971,7 @@ bool readMpileupFile(Config<TTreeType> & config)
                     {
                         if(cellsNotMutated[cell] < cellsMutated[cell])
                         {
-                            testCounts.push_back({counts[cell][j], counts[cell][4]});
+                            testCounts.push_back({counts[cell][altAlleleIdx], counts[cell][4]});
                         }
                     }
 
@@ -999,8 +1020,8 @@ bool readMpileupFile(Config<TTreeType> & config)
                         for (size_t cell = 0; cell < counts.size(); ++cell)
                         {
                             std::get<0>(tempCounts[cell]) = counts[cell][4];
-                            std::get<1>(tempCounts[cell]) = counts[cell][j];
-                            if (counts[cell][j] > 0)
+                            std::get<1>(tempCounts[cell]) = counts[cell][altAlleleIdx];
+                            if (counts[cell][altAlleleIdx] > 0)
                             {
                                 ++numAffectetCells;
                             }
@@ -1008,11 +1029,11 @@ bool readMpileupFile(Config<TTreeType> & config)
                 
                         if (numAffectetCells > 1)
                         {
-                          data.push_back(TDataEntry(TPositionInfo(splitVec[0], std::stoi(splitVec[1]), splitVec[2][0], indexToChar(j)), tempCounts, logH1/logH0));
+                          data.push_back(TDataEntry(TPositionInfo(splitVec[0], std::stoi(splitVec[1]), splitVec[2][0], indexToChar(altAlleleIdx)), tempCounts, logH1/logH0));
                         }
                         else
                         {
-                            data.push_back(TDataEntry(TPositionInfo(splitVec[0], std::stoi(splitVec[1]), splitVec[2][0], indexToChar(j)), tempCounts, -DBL_MAX));
+                            data.push_back(TDataEntry(TPositionInfo(splitVec[0], std::stoi(splitVec[1]), splitVec[2][0], indexToChar(altAlleleIdx)), tempCounts, -DBL_MAX));
                             ++config.numUniqMuts;
                         }
                     }
