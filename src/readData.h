@@ -307,7 +307,13 @@ std::set<std::tuple<std::string, std::string, std::string, std::string>>
 readInclusionVCF(std::string const & fileName)
 {
     std::set<std::tuple<std::string, std::string, std::string, std::string>> incMap;
+    if(fileName.empty()) return incMap;
+
+    std::cout << "Reading inclusion VCF " << fileName << " ..." << std::flush;
     std::ifstream inputStream(fileName);
+    if (!inputStream){
+        throw std::runtime_error("Could not open inclusionVCF (--inc) " + fileName);
+    }
     std::string currLine;                    // line currently processed
     std::vector<std::string> splitVec;  // vector storing the words in currLine dived by a tab
     while (std::getline(inputStream, currLine))
@@ -318,6 +324,8 @@ readInclusionVCF(std::string const & fileName)
             incMap.insert(std::make_tuple(splitVec[0], splitVec[1], splitVec[3], splitVec[4]));
         }
     }
+    std::cout << " read " << incMap.size() << " variants." << std::endl;
+
     return incMap;
 }
 
@@ -808,7 +816,7 @@ bool readMpileupFile(Config<TTreeType> & config)
 
     // determine which variants to keep
     auto incMap = readInclusionVCF(config.variantInclusionFileName);
-    
+
     TData data;
 
     std::array<unsigned, 5> normalBulkCounts;
@@ -961,7 +969,7 @@ bool readMpileupFile(Config<TTreeType> & config)
                 }
                 
 
-                if (logH1 > logH0 || incMap.count(std::make_tuple(splitVec[0], splitVec[1], splitVec[2], std::string(1, indexToChar(altAlleleIdx)))))
+                if (logH1 > logH0 || incMap.count(std::make_tuple(splitVec[0], splitVec[1], splitVec[2], std::string(1, indexToChar(altAlleleIdx)))) != 0)
                 {
                     positionMutated = true;
 
