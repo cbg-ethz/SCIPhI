@@ -244,6 +244,7 @@ class Config{
     std::string                                 bamFileNames;
     std::string                                 exclusionFileName;
     std::string                                 mutationExclusionFileName;
+    std::string                                 variantInclusionFileName;
     std::string                                 inFileName;
     std::string                                 loadName;
     std::string                                 lastName;
