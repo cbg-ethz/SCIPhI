@@ -1022,7 +1022,7 @@ bool readMpileupFile(Config<TTreeType> & config)
                         pValue = 1 - boost::math::cdf(mydist, testStat);
                     }
 
-                    if(pValue > 0.05 || startingPointMeanOverDis(0) >= config.meanFilter)
+                    if(pValue > 0.05 || startingPointMeanOverDis(0) >= config.meanFilter || incMap.count(std::make_tuple(splitVec[0], splitVec[1], splitVec[2], std::string(1, indexToChar(altAlleleIdx)))) != 0)
                     {
                         unsigned numAffectetCells = 0;
                         for (size_t cell = 0; cell < counts.size(); ++cell)
