@@ -482,15 +482,11 @@ void estimateSeqErrorRate(Config<TTreeType> & config,
     std::set<std::tuple<std::string, std::string>> const & exMap,
     std::set<std::tuple<std::string, std::string>> const & errExMap,
     std::vector<unsigned> const & tumorCellPos,
-    std::vector<unsigned> const & normalCellPos)
+    std::vector<unsigned> const & normalCellPos,
+    std::ifstream & inputStream,
+    std::stringstream & inFileHeadBuff)
 {
     //estimate the error rate
-    std::ifstream inputStream(config.inFileName);
-    if (inputStream.fail())
-    {
-        std::cerr << "The pileup file provided does not exist or you lack permission to access it." << std::endl;
-        return;
-    }
     std::string currLine;
     std::vector<std::string> splitVec;
     std::vector<std::array<unsigned, 5>> tumor_counts(tumorCellPos.size(), {{0,0,0,0,0}});
@@ -499,6 +495,7 @@ void estimateSeqErrorRate(Config<TTreeType> & config,
     unsigned seqErrorsCombCov = 0;
     for (size_t lineNumber = 0; lineNumber < config.errorRateEstLoops && getline(inputStream, currLine); ++lineNumber)
     {
+        inFileHeadBuff << currLine << '\n';
         boost::split(splitVec, currLine, boost::is_any_of("\t"));
         
         if(!isRefKnown(splitVec[2]))
@@ -522,8 +519,7 @@ void estimateSeqErrorRate(Config<TTreeType> & config,
         }
     }
     ++seqErrors; // add pseudo counts
-    inputStream.close();
-    
+
     // set the new estimated error rate
 
     if(seqErrorsCombCov > 0)
@@ -853,12 +849,17 @@ bool readMpileupFile(Config<TTreeType> & config)
     std::vector<double> cellsMutatedNormal(normalCellPos.size());
 
 
-    if (config.estimateSeqErrorRate)
-    {
-        estimateSeqErrorRate(config, exMap, errExMap, tumorCellPos, normalCellPos);
+    std::stringstream inFileHeadBuff;
+    std::ifstream inputStream(config.inFileName, std::ifstream::in);
+    if (!inputStream){
+        throw std::runtime_error("Could not open input file " + config.inFileName);
     }
 
-    std::ifstream inputStream(config.inFileName, std::ifstream::in);
+    if (config.estimateSeqErrorRate)
+    {
+        estimateSeqErrorRate(config, exMap, errExMap, tumorCellPos, normalCellPos, inputStream, inFileHeadBuff);
+    }
+
     std::string currentChrom = "";
     std::string currLine;
     std::vector<std::string> splitVec;
@@ -868,7 +869,7 @@ bool readMpileupFile(Config<TTreeType> & config)
     std::cout.precision(15);
     config.printParameters();
 
-    while (getline(inputStream, currLine))
+    while (getline(inFileHeadBuff, currLine) || getline(inputStream, currLine))
     {
         // solit the current line into easily accessible chunks
         boost::split(splitVec, currLine, boost::is_any_of("\t"));
