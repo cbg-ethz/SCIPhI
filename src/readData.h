@@ -469,6 +469,14 @@ double sumValuesInLogSpace(std::vector<double>::const_iterator itBegin, std::vec
 
 }
 
+// check if the reference base is known
+bool isRefKnown(std::string const & n)
+{
+    if (n[0] == 'n' || n[0] == 'N')
+        return false;
+    return true;
+}
+
 template<typename TTreeType>
 void estimateSeqErrorRate(Config<TTreeType> & config,
     std::set<std::tuple<std::string, std::string>> const & exMap,
@@ -489,6 +497,13 @@ void estimateSeqErrorRate(Config<TTreeType> & config,
     {
         inFileHeadBuff << currLine << '\n';
         boost::split(splitVec, currLine, boost::is_any_of("\t"));
+        
+        if(!isRefKnown(splitVec[2]))
+        {
+            ++config.errorRateEstLoops;
+            continue;
+        }
+
         auto itEx = exMap.find(std::tuple<std::string, std::string>(splitVec[0], splitVec[1]));
         auto itErrEx = errExMap.find(std::tuple<std::string, std::string>(splitVec[0], splitVec[1]));
         if (itEx == exMap.end() && itErrEx == errExMap.end())
@@ -779,6 +794,7 @@ bool computeProbCellsAreMutated(
 }
 
 
+
 template <typename TTreeType>
 bool readMpileupFile(Config<TTreeType> & config)
 {
@@ -859,6 +875,11 @@ bool readMpileupFile(Config<TTreeType> & config)
         boost::split(splitVec, currLine, boost::is_any_of("\t"));
         // print the progress
         printCurrentChrom(currentChrom, splitVec[0]);
+
+        if(!isRefKnown(splitVec[2]))
+        {
+            continue;
+        }
 
         // check if the current pos is to be excluded
         auto it = exMap.find(std::tuple<std::string, std::string>(splitVec[0], splitVec[1]));
