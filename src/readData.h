@@ -475,15 +475,10 @@ void estimateSeqErrorRate(Config<TTreeType> & config,
     std::set<std::tuple<std::string, std::string>> const & errExMap,
     std::vector<unsigned> const & tumorCellPos,
     std::vector<unsigned> const & normalCellPos,
+    std::ifstream & inputStream,
     std::stringstream & inFileHeadBuff)
 {
     //estimate the error rate
-    std::ifstream inputStream(config.inFileName);
-    if (inputStream.fail())
-    {
-        std::cerr << "The pileup file provided does not exist or you lack permission to access it." << std::endl;
-        return;
-    }
     std::string currLine;
     std::vector<std::string> splitVec;
     std::vector<std::array<unsigned, 5>> tumor_counts(tumorCellPos.size(), {{0,0,0,0,0}});
@@ -509,8 +504,7 @@ void estimateSeqErrorRate(Config<TTreeType> & config,
         }
     }
     ++seqErrors; // add pseudo counts
-    inputStream.close();
-    
+
     // set the new estimated error rate
 
     if(seqErrorsCombCov > 0)
@@ -840,14 +834,14 @@ bool readMpileupFile(Config<TTreeType> & config)
 
 
     std::stringstream inFileHeadBuff;
-    if (config.estimateSeqErrorRate)
-    {
-        estimateSeqErrorRate(config, exMap, errExMap, tumorCellPos, normalCellPos, inFileHeadBuff);
-    }
-
     std::ifstream inputStream(config.inFileName, std::ifstream::in);
     if (!inputStream){
         throw std::runtime_error("Could not open input file " + config.inFileName);
+    }
+
+    if (config.estimateSeqErrorRate)
+    {
+        estimateSeqErrorRate(config, exMap, errExMap, tumorCellPos, normalCellPos, inputStream, inFileHeadBuff);
     }
 
     std::string currentChrom = "";
