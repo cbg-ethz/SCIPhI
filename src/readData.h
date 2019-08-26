@@ -469,9 +469,10 @@ double sumValuesInLogSpace(std::vector<double>::const_iterator itBegin, std::vec
 
 }
 
+// check if the reference base is known
 bool isRefKnown(std::string const & n)
 {
-    if (n == 'n' || n == 'N')
+    if (n[0] == 'n' || n[0] == 'N')
         return false;
     return true;
 }
