@@ -474,7 +474,8 @@ void estimateSeqErrorRate(Config<TTreeType> & config,
     std::set<std::tuple<std::string, std::string>> const & exMap,
     std::set<std::tuple<std::string, std::string>> const & errExMap,
     std::vector<unsigned> const & tumorCellPos,
-    std::vector<unsigned> const & normalCellPos)
+    std::vector<unsigned> const & normalCellPos,
+    std::stringstream & inFileHeadBuff)
 {
     //estimate the error rate
     std::ifstream inputStream(config.inFileName);
@@ -491,6 +492,7 @@ void estimateSeqErrorRate(Config<TTreeType> & config,
     unsigned seqErrorsCombCov = 0;
     for (size_t lineNumber = 0; lineNumber < config.errorRateEstLoops && getline(inputStream, currLine); ++lineNumber)
     {
+        inFileHeadBuff << currLine << '\n';
         boost::split(splitVec, currLine, boost::is_any_of("\t"));
         auto itEx = exMap.find(std::tuple<std::string, std::string>(splitVec[0], splitVec[1]));
         auto itErrEx = errExMap.find(std::tuple<std::string, std::string>(splitVec[0], splitVec[1]));
@@ -837,12 +839,17 @@ bool readMpileupFile(Config<TTreeType> & config)
     std::vector<double> cellsMutatedNormal(normalCellPos.size());
 
 
+    std::stringstream inFileHeadBuff;
     if (config.estimateSeqErrorRate)
     {
-        estimateSeqErrorRate(config, exMap, errExMap, tumorCellPos, normalCellPos);
+        estimateSeqErrorRate(config, exMap, errExMap, tumorCellPos, normalCellPos, inFileHeadBuff);
     }
 
     std::ifstream inputStream(config.inFileName, std::ifstream::in);
+    if (!inputStream){
+        throw std::runtime_error("Could not open input file " + config.inFileName);
+    }
+
     std::string currentChrom = "";
     std::string currLine;
     std::vector<std::string> splitVec;
@@ -852,7 +859,7 @@ bool readMpileupFile(Config<TTreeType> & config)
     std::cout.precision(15);
     config.printParameters();
 
-    while (getline(inputStream, currLine))
+    while (getline(inFileHeadBuff, currLine) || getline(inputStream, currLine))
     {
         // solit the current line into easily accessible chunks
         boost::split(splitVec, currLine, boost::is_any_of("\t"));
