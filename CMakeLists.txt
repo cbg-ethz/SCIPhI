@@ -24,10 +24,12 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 include(CheckLibraryExists)
 CHECK_LIBRARY_EXISTS(rt clock_gettime "" HAVE_CLOCK_GETTIME)
 
-if (NOT HAVE_CLOCK_GETTIME)
-   set(CMAKE_EXTRA_INCLUDE_FILES time.h)
-   CHECK_FUNCTION_EXISTS(clock_gettime HAVE_CLOCK_GETTIME)
-   SET(CMAKE_EXTRA_INCLUDE_FILES)
+include(CheckFunctionExists)
+include(CheckLibraryExists)
+check_library_exists(rt clock_gettime "time.h" HAVE_CLOCK_GETTIME)
+if (HAVE_CLOCK_GETTIME)
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lrt")
+    set(CMAKE_C_STANDARD_LIBRARIES "${CMAKE_C_STANDARD_LIBRARIES} -lrt")
 endif()
 
 # Search for boost
