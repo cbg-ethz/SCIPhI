@@ -21,6 +21,15 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 # Dependencies
 # ----------------------------------------------------------------------------
 
+include(CheckLibraryExists)
+CHECK_LIBRARY_EXISTS(rt clock_gettime "" HAVE_CLOCK_GETTIME)
+
+if (NOT HAVE_CLOCK_GETTIME)
+   set(CMAKE_EXTRA_INCLUDE_FILES time.h)
+   CHECK_FUNCTION_EXISTS(clock_gettime HAVE_CLOCK_GETTIME)
+   SET(CMAKE_EXTRA_INCLUDE_FILES)
+endif()
+
 # Search for boost
 find_package(Boost 1.47 COMPONENTS program_options graph filesystem iostreams unit_test_framework REQUIRED)
 
@@ -51,19 +60,19 @@ set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${SEQAN_CXX_FLAGS}")
 
 # Add executable and link against SeqAn dependencies.
 add_executable(sciphi src/findBestTrees.cpp)
-target_link_libraries (sciphi dlib::dlib ${Boost_LIBRARIES} rt)
+target_link_libraries (sciphi dlib::dlib ${Boost_LIBRARIES})
 
 if (BUILD_DIAGNOSTICS)
 	add_executable(convertTree2Map src/convertTreeIntoClusterMap.cpp)
-	target_link_libraries (convertTree2Map dlib::dlib ${SEQAN_LIBRARIES} ${Boost_LIBRARIES} rt)
+	target_link_libraries (convertTree2Map dlib::dlib ${SEQAN_LIBRARIES} ${Boost_LIBRARIES})
 	target_include_directories(convertTree2Map PRIVATE ${SEQAN_INCLUDE_DIRS})
 
 	add_executable(createSingleCellTree src/createSingleCellSeqTree.cpp)
-	target_link_libraries (createSingleCellTree dlib::dlib ${SEQAN_LIBRARIES} ${Boost_LIBRARIES} rt)
+	target_link_libraries (createSingleCellTree dlib::dlib ${SEQAN_LIBRARIES} ${Boost_LIBRARIES})
 	target_include_directories(createSingleCellTree PRIVATE ${SEQAN_INCLUDE_DIRS})
 
 	add_executable(sciphi_test test/sciphi_test.cpp)
-	target_link_libraries (sciphi_test dlib::dlib ${SEQAN_LIBRARIES} ${Boost_LIBRARIES} rt)
+	target_link_libraries (sciphi_test dlib::dlib ${SEQAN_LIBRARIES} ${Boost_LIBRARIES})
 	target_include_directories(sciphi_test PRIVATE ${SEQAN_INCLUDE_DIRS})
 endif()
 # To compile this program all you need to do is ask cmake.  You would type
