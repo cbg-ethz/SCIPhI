@@ -193,7 +193,7 @@ int main(int argc, char* argv[])
 	TConfig config{};
 	
     // read the command line arguments
-    std::cout << "SCIPhI v" << VERSION_MAJOR << "." << VERSION_MINOR << "." << VERSION_PATCH << "-" << VERSION_STRING << std::endl;
+    std::cout << "SCIPhI v" << VERSION_MAJOR << "." << VERSION_MINOR << "." << VERSION_PATCH << std::endl;
     std::cout << "Reading the config file: ... " << std::flush;
 	readParameters(config, argc, argv);
     std::cout << "done!" << std::endl;
