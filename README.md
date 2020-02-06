@@ -43,7 +43,7 @@ Afterwards you will find SCIPhI in the build directory.
 
 ## Run SCIPhI
 
-SCIPhI expects the sequencing information to be passed in form of the well known mpileup format (http://www.htslib.org/doc/samtools.html). In order to generate such a file you need to align your fastq files to a reference and post process the result (e.g., following the instuctions here: https://software.broadinstitute.org/gatk/best-practices/workflow?id=11165). 
+SCIPhI expects the sequencing information to be passed in form of the well known mpileup format (http://www.htslib.org/doc/samtools.html). In order to generate such a file you need to align your fastq files to a reference and post process the result (e.g., following the instuctions here: https://gatk.broadinstitute.org/hc/en-us/articles/360035535912-Data-pre-processing-for-variant-discovery). 
 
 In order to see all available options type
 
