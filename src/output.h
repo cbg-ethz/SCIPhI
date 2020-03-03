@@ -137,7 +137,7 @@ writeVCFSingleEntry(std::ofstream & outFile,
     // filter
     outFile << "PASS\t";
     // info
-    outFile << "DP:";
+    outFile << "DP=";
     unsigned dpAll = 0;
     for (unsigned sample = 0; sample < config.getNumSamples(); ++sample)
         dpAll += std::get<0>(config.getData()[entries[0]][sample]);
@@ -193,7 +193,7 @@ writeVCFMultiEntry(std::ofstream & outFile,
             outFile << "PASS\t";
         }
         // info
-        outFile << "DP:";
+        outFile << "DP=";
         unsigned dpAll = 0;
         for (unsigned sample = 0; sample < config.getNumSamples(); ++sample)
             dpAll += std::get<0>(config.getData()[sample][entries[alt]]);
